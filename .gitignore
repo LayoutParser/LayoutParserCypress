@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+
+# Artefatos de execução do Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
+# Segredos/URLs de ambiente locais — NUNCA commitar
+cypress.env.json
+
+# Logs
+npm-debug.log*
+*.log

@@ -1,0 +1,23 @@
+{
+  "name": "layoutparsercypress",
+  "version": "1.0.0",
+  "description": "Suite de testes E2E (Cypress) validando aceitacao de NF-e transformada pela LayoutParserApi no ambiente e-forms/Pollux (SEFAZ fake de dev, NDD).",
+  "main": "index.js",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test": "cypress run"
+  },
+  "keywords": [
+    "cypress",
+    "e2e",
+    "nfe",
+    "layoutparser"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "cypress": "^15.19.0"
+  }
+}
