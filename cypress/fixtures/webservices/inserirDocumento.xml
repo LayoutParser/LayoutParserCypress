@@ -1,0 +1,12 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://nddigital.com.br/eForms/webservices">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:eDocument>
+         <!--Optional:-->
+         <web:header><![CDATA[<eformsInserir xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.nddigital.com.br/connector">
+         <versao>1.00</versao> <tipodocumento>1</tipodocumento> <tiposervico>1</tiposervico> <identificador>NFE</identificador> <validarschema>1</validarschema> </eformsInserir>]]></web:header>
+         <!--Optional:-->
+         <web:document><![CDATA[{{DOCUMENTO}}]]></web:document>
+      </web:eDocument>
+   </soapenv:Body>
+</soapenv:Envelope>
