@@ -6,7 +6,10 @@
   "scripts": {
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "test": "cypress run"
+    "test": "cypress run",
+    "batch": "cypress run --spec cypress/e2e/ia-candidates-batch.cy.js",
+    "verdict": "node scripts/verdict.js",
+    "replay:results": "node scripts/replay-results.js"
   },
   "keywords": [
     "cypress",
@@ -18,6 +21,6 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "cypress": "^15.19.0"
+    "cypress": "15.19.0"
   }
 }
