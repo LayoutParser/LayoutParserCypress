@@ -131,3 +131,35 @@ Cypress.Commands.add("enviarNFeParaPolux", (xmlNFe) => {
       });
   });
 });
+
+/**
+ * Variante SOFT usada pelo Job 2 (batch de candidatos da IA) — ver
+ * `cypress/e2e/ia-candidates-batch.cy.js` e o handoff §5.1.3.
+ *
+ * Diferença deliberada em relação ao `cy.enviarNFeParaPolux` acima: este comando **sempre
+ * resolve**, nunca lança. No Job 2 o Cypress é instrumento de MEDIÇÃO, não gate de qualidade —
+ * uma NF-e recusada pelo Pollux (sem protocolo, cStat ≠ 100) é `rejected`, que é exatamente o
+ * dado que o painel de métricas de IA quer; não é crash. Só a AUSÊNCIA de veredito (Pollux
+ * inacessível, timeout, HTTP ≠ 200, resposta ilegível) é `infra_error`.
+ *
+ * O comando alpha acima NÃO foi alterado — `nfe-emissao-normal.cy.js` depende do `throw`.
+ *
+ * Implementado sobre `cy.task` (Node) e não sobre `cy.request` por um motivo concreto:
+ * `cy.request` não tem catch — uma falha de rede aborta o teste e o candidato ficaria sem
+ * linha no NDJSON, perdendo justamente o registro de `infra_error`. Além disso mantém a
+ * lógica SOAP em módulo Node reusável pelo plano B da §6.6 (runner sem Cypress).
+ *
+ * @param {string|{candidateId?: string, xmlPath?: string}} alvo
+ *   XML de NF-e (string) OU o objeto candidato do manifesto (o XML é lido do run dir).
+ * @returns {Cypress.Chainable<{outcome: 'accepted'|'rejected'|'infra_error', cStat: string|null,
+ *   protocolo: string|null, mensagemGeral: string|null, mensagemItem: string|null,
+ *   erro: string|null, durationMs: number}>}
+ */
+Cypress.Commands.add("enviarNFeParaPolluxSoft", (alvo) => {
+  const argumentos = typeof alvo === "string" ? { xml: alvo } : { candidate: alvo };
+  // Teto de tempo por candidato (inserir + espera do protocolo + consultar). Configurável para
+  // não exigir edição de código ao ajustar o ambiente; se estourar, quem registra o
+  // `infra_error` é a rede de segurança do afterEach da spec.
+  const timeout = Number(Cypress.expose("lpTaskTimeoutMs") || 180000);
+  return cy.task("enviarPollux", argumentos, { log: true, timeout });
+});

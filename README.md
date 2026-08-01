@@ -32,3 +32,40 @@ ambiente fiscal de destino.
 
 Ver [`.claude/CLAUDE.md`](.claude/CLAUDE.md) para o escopo detalhado (fase alpha: só emissão
 normal de NF-e, comparando os pathways Sysmiddle e TCL/XSL).
+
+## Job 2 — candidatos de IA em batch
+
+O batch consome o `manifest.json` produzido pelo Job 1 e grava os resultados no mesmo diretório
+de run. O manifesto deve existir antes da execução; sua ausência retorna exit `2`.
+
+Na VM:
+
+```bash
+export LP_METRICS_RUN_DIR=/home/elson/layoutparser-ai-metrics/runs/<runId>
+export LP_POLLUX_URL_INSERIR='https://.../WSInserirDocumento'
+export LP_POLLUX_URL_CONSULTAR='https://.../WSConsultarProtocolo'
+export LP_API_URL='http://.../layoutparserapi' # opcional; POST é best-effort
+
+./run-cypress-batch.sh "$LP_METRICS_RUN_DIR"
+```
+
+O wrapper ignora deliberadamente o exit code visual do Cypress e usa
+`scripts/verdict.js`: rejeições fiscais são medições válidas; somente `infra_error`, candidato
+sem registro ou artefato ausente fazem o Job 2 falhar.
+
+Artefatos gerados:
+
+- `cypress-results.ndjson`: uma linha incremental por candidato.
+- `cypress-summary.json`: agregado final e veredito do job.
+
+Se a API estava indisponível, reenvie apenas os registros pendentes sem repetir o Pollux:
+
+```bash
+npm run replay:results -- "$LP_METRICS_RUN_DIR"
+```
+
+Teste local autocontido (usa Pollux e API simulados, sem acessar os serviços reais):
+
+```bash
+npm run test:job2
+```

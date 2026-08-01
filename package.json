@@ -6,7 +6,11 @@
   "scripts": {
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "test": "cypress run"
+    "test": "cypress run",
+    "batch": "cypress run --config-file cypress.batch.config.js --spec cypress/e2e/ia-candidates-batch.cy.js",
+    "test:job2": "node --test test/job2.integration.test.js",
+    "verdict": "node scripts/verdict.js",
+    "replay:results": "node scripts/replay-results.js"
   },
   "keywords": [
     "cypress",
@@ -17,7 +21,10 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "config": {
+    "cypress_cache_folder": "/home/elson/.cache/Cypress"
+  },
   "devDependencies": {
-    "cypress": "^15.19.0"
+    "cypress": "15.19.0"
   }
 }
