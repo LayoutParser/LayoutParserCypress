@@ -16,7 +16,13 @@
 const fs = require("fs");
 const path = require("path");
 
-const { lerRegistros, marcarPosted, caminhoNdjson } = require("../cypress/support/lib/results");
+const {
+  lerRegistros,
+  lerSummary,
+  marcarPosted,
+  gerarSummary,
+  caminhoNdjson,
+} = require("../cypress/support/lib/results");
 const { postCypressResult } = require("../cypress/support/lib/api-client");
 
 function resolverRunDir(entrada) {
@@ -32,7 +38,9 @@ function resolverRunDir(entrada) {
 }
 
 function lerApiUrl() {
-  // Mesma precedência das tasks: cypress.env.json (local, gitignored) -> env var.
+  // Mesma precedência das tasks: override explícito do processo -> arquivo local.
+  if (process.env.LP_API_URL) return process.env.LP_API_URL;
+
   const arquivo = path.resolve(__dirname, "..", "cypress.env.json");
   try {
     const env = JSON.parse(fs.readFileSync(arquivo, "utf8"));
@@ -40,7 +48,7 @@ function lerApiUrl() {
   } catch (e) {
     /* sem cypress.env.json local — segue para a env var */
   }
-  return process.env.LP_API_URL || null;
+  return null;
 }
 
 async function main() {
@@ -86,6 +94,18 @@ async function main() {
     } else {
       console.warn(`[replay] ERRO ${registro.candidateId} — ${resposta.erro}`);
     }
+  }
+
+  // O NDJSON é a fonte da verdade, mas o summary precisa continuar sendo um agregado fiel
+  // depois do replay. Preservamos os tempos do run original e recalculamos os contadores.
+  const summaryAnterior = lerSummary(runDir);
+  if (summaryAnterior) {
+    gerarSummary(runDir, {
+      runId: summaryAnterior.runId,
+      startedAt: summaryAnterior.startedAt,
+      finishedAt: summaryAnterior.finishedAt,
+      expected: summaryAnterior.expected,
+    });
   }
 
   console.log(`[replay] ${enviados}/${pendentes.length} reenviado(s) com sucesso.`);

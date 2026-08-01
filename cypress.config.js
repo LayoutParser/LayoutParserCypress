@@ -42,6 +42,16 @@ module.exports = defineConfig({
       config.env.lpRunDir = info.runDir;
       config.env.lpRunId = info.runId;
       config.env.lpCandidates = info.candidates; // a spec filtra por eligibleForPollux (§4)
+      // Cypress.env() foi descontinuado no Cypress 15.10. Estes valores não são segredos e
+      // precisam estar disponíveis sincronamente no load da spec, então Cypress.expose() é
+      // o substituto apropriado. Mantemos config.env acima apenas para as tasks Node.
+      config.expose = {
+        ...(config.expose || {}),
+        lpRunDir: info.runDir,
+        lpRunId: info.runId,
+        lpCandidates: info.candidates,
+        lpTaskTimeoutMs: Number(config.env.lpTaskTimeoutMs || 180000),
+      };
 
       on("task", criarTasks({ runDir: info.runDir, runId: info.runId, env: config.env }));
 

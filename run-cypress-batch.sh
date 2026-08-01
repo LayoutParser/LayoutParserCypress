@@ -52,13 +52,10 @@ echo "[job2] CYPRESS_CACHE_FOLDER=$CYPRESS_CACHE_FOLDER"
 # (caso do cron). `xvfb-run` por fora conflita com o Xvfb interno e mascara erros. O pacote
 # `xvfb` precisa estar instalado, só isso.
 #
-# `--config baseUrl=` NÃO é cosmético: com um baseUrl definido, o Cypress faz um health check
-# nele e ABORTA o run inteiro se o servidor não responder ("Cypress failed to verify that your
-# server is running"), antes de qualquer teste e antes de escrever qualquer artefato. Como este
-# job roda sábado de madrugada — exatamente quando a LayoutParserApi pode estar fora do ar — o
-# Job 2 morreria sem sequer registrar o motivo. A spec do Job 2 usa só URLs absolutas
-# (cypress.env.json), então baseUrl é dispensável aqui.
-"$NPX_BIN" cypress run --config baseUrl= --spec cypress/e2e/ia-candidates-batch.cy.js
+# O config dedicado OMITE baseUrl. Passar `--config baseUrl=` não limpa a propriedade no
+# Cypress 15: ele ainda tenta validar http://localhost:5000 e aborta antes de carregar a spec.
+# O Job 2 usa só URLs absolutas e precisa rodar mesmo quando a LayoutParserApi está fora.
+"$NPX_BIN" cypress run --config-file cypress.batch.config.js --spec cypress/e2e/ia-candidates-batch.cy.js
 CYPRESS_EXIT=$?
 echo "[job2] cypress run terminou com exit=$CYPRESS_EXIT (ignorado de propósito — ver cabeçalho)"
 

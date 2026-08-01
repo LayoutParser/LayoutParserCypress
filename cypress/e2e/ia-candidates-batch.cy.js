@@ -17,17 +17,17 @@
 //     para inspeção humana (verde = aceito, vermelho = rejeitado/sem veredito).
 //
 // A descoberta dos candidatos acontece em cypress.config.js (setupNodeEvents), em Node,
-// ANTES do load desta spec — aqui só se lê `Cypress.env`, de forma síncrona. Ver §4 do handoff.
+// ANTES do load desta spec — aqui só se lê `Cypress.expose`, de forma síncrona. Ver §4 do handoff.
 
 // `record.js` é o único módulo de lib/ sem dependência de `fs` — pode ser importado aqui
 // (bundle do browser) e também pelas tasks em Node, sem duplicar o formato do registro.
 const { montarRegistro } = require("../support/lib/record");
 
-const candidatos = (Cypress.env("lpCandidates") || []).filter(
+const candidatos = (Cypress.expose("lpCandidates") || []).filter(
   (c) => c && c.eligibleForPollux === true
 );
-const runId = Cypress.env("lpRunId");
-const runDir = Cypress.env("lpRunDir");
+const runId = Cypress.expose("lpRunId");
+const runDir = Cypress.expose("lpRunDir");
 
 describe("Job 2 — candidatos IA vs Pollux", () => {
   if (candidatos.length === 0) {

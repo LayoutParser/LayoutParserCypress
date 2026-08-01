@@ -160,6 +160,6 @@ Cypress.Commands.add("enviarNFeParaPolluxSoft", (alvo) => {
   // Teto de tempo por candidato (inserir + espera do protocolo + consultar). Configurável para
   // não exigir edição de código ao ajustar o ambiente; se estourar, quem registra o
   // `infra_error` é a rede de segurança do afterEach da spec.
-  const timeout = Number(Cypress.env("lpTaskTimeoutMs") || 180000);
+  const timeout = Number(Cypress.expose("lpTaskTimeoutMs") || 180000);
   return cy.task("enviarPollux", argumentos, { log: true, timeout });
 });

@@ -29,9 +29,12 @@ function criarTasks(contexto) {
 
   // URLs NUNCA são inventadas aqui: se faltarem, o candidato vira `infra_error` com mensagem
   // explícita (ver pollux.enviarDocumento) em vez de apontar para um host plausível.
-  const urlInserir = env.poluxUrlInserirDocumento || process.env.LP_POLLUX_URL_INSERIR || null;
-  const urlConsultar = env.poluxUrlConsultarProtocolo || process.env.LP_POLLUX_URL_CONSULTAR || null;
-  const apiUrl = env.layoutParserApiUrl || process.env.LP_API_URL || null;
+  // Variáveis do processo têm precedência: são o mecanismo de configuração do cron e
+  // precisam conseguir sobrescrever um cypress.env.json eventualmente presente na cópia
+  // implantada (e também permitem testes isolados sem falar com serviços reais).
+  const urlInserir = process.env.LP_POLLUX_URL_INSERIR || env.poluxUrlInserirDocumento || null;
+  const urlConsultar = process.env.LP_POLLUX_URL_CONSULTAR || env.poluxUrlConsultarProtocolo || null;
+  const apiUrl = process.env.LP_API_URL || env.layoutParserApiUrl || null;
   const strictTls = process.env.LP_POLLUX_STRICT_TLS === "1";
   const esperaProtocoloMs = Number(process.env.LP_POLLUX_WAIT_MS || 5000);
   const timeoutMs = Number(process.env.LP_POLLUX_TIMEOUT_MS || 60000);
