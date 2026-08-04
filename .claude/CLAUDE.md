@@ -18,19 +18,25 @@ diferente; serviu só de referência conceitual). Complementa o ecossistema Layo
 | LayoutParserLib / LayoutParserDecrypt / LayoutParserReact | Demais peças do ecossistema. |
 | **LayoutParserCypress** *(este)* | Valida ponta-a-ponta: TXT → transformação → aceito pelo e-forms? |
 
-## 2. Escopo atual (fase alpha — não expandir sem decisão explícita)
+## 2. Escopo atual
 
-Só **Emissão normal de NF-e**, comparando os DOIS pathways de transformação que já existem
-na LayoutParserApi:
-- **Sysmiddle / LowCode-auto** — `POST /api/parse/upload` (campos `transformationsStatus`/
-  `transformations` na resposta — ver histórico do LayoutParserApi, memória
-  `unified-logging-and-multi-transform.md`, pra contrato exato).
-- **TCL/XSL / Canônico** — `TransformationExecutionController` (`TransformTxtToXmlAsync`).
+Só **Emissão normal de NF-e**. O gate dos mapeadores padrão segue o fluxo:
 
-O objetivo é enviar a saída de AMBOS os pathways pro e-forms/Pollux e comparar qual (ou quais)
-retornam autorização (`cStat=100` ou equivalente) — isso serve de oráculo empírico pra saber
-qual pathway/mapper está correto para um documento real (motivação original: ambiguidade de
-mapeadores da Fiat, múltiplas linhas em `tbMapper` pro mesmo `InputLayoutGuid`).
+1. a LayoutParserApi gera TCL + XSL para o layout SysMiddle cadastrado
+   (`POST /api/AutoTransformation/generate-for-layout`);
+2. a API executa o TXT posicional com os artefatos recém-gerados
+   (`POST /api/transformation-execution/execute`);
+3. o Cypress envia o `transformedXml` ao e-forms/Pollux e exige autorização
+   (`cStat=100` ou equivalente).
+
+A matriz começa com **FIAT** (`LAY_TXT_MQSERIES_ENVNFE_4.00_NFe`, layout GUID
+`LAY_ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c`). A expansão planejada é Comau, Marelli e CNHi,
+um `it()` isolado por mapeador, quando cada par layout + TXT estiver habilitado.
+
+O batch de candidatos sintetizados pela IA é uma suíte separada
+(`ia-candidates-batch.cy.js`) e conserva sua própria semântica de veredito: rejeição é medição
+válida; apenas ausência de veredito do Pollux falha o Job 2. No gate dos mapeadores padrão,
+qualquer rejeição fiscal falha o teste.
 
 Cancelamento e Inutilização ficam **fora de escopo por enquanto** — Inutilização em particular
 precisa encadear com uma rejeição real (enviar → capturar nNF/série da rejeição → inutilizar

@@ -19,8 +19,8 @@
  * @returns {Cypress.Chainable<{protocolo: string, cStat: string|null, mensagemGeral: string, mensagemItem: string, insercaoBody: string, consultaBody: string}>}
  */
 Cypress.Commands.add("enviarNFeParaPolux", (xmlNFe) => {
-  const urlInserir = Cypress.env("poluxUrlInserirDocumento");
-  const urlConsultar = Cypress.env("poluxUrlConsultarProtocolo");
+  const urlInserir = Cypress.expose("poluxUrlInserirDocumento");
+  const urlConsultar = Cypress.expose("poluxUrlConsultarProtocolo");
 
   if (!urlInserir || !urlConsultar) {
     throw new Error(
