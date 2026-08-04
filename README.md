@@ -69,3 +69,22 @@ Teste local autocontido (usa Pollux e API simulados, sem acessar os serviços re
 ```bash
 npm run test:job2
 ```
+
+## Gate dos mapeadores padrão
+
+O primeiro caso cobre o mapeador FIAT com o TXT posicional MQSeries versionado em
+`cypress/fixtures/txt-input/nfe-emissao-normal.mq_series.txt`. A API gera TCL/XSL em cada
+rodada, executa o documento com os artefatos recém-gerados e o Cypress exige autorização do
+Pollux.
+
+```bash
+export LP_API_URL='http://.../layoutparserapi'
+export LP_POLLUX_URL_INSERIR='https://.../WSInserirDocumento'
+export LP_POLLUX_URL_CONSULTAR='https://.../WSConsultarProtocolo'
+npm run test:mappers
+```
+
+O layout FIAT padrão é `LAY_TXT_MQSERIES_ENVNFE_4.00_NFe`; use
+`LP_FIAT_LAYOUT_NAME` somente se o catálogo do ambiente tiver outro nome. Comau, Marelli e
+CNHi serão novas entradas na matriz da mesma spec quando seus pares layout + TXT forem
+habilitados.

@@ -56,6 +56,7 @@ function respostaSoapConsulta() {
 
 function iniciarServicos() {
   const posts = [];
+  const mapperRequests = [];
   let falharPrimeiroPost = true;
   const server = http.createServer((req, res) => {
     const chunks = [];
@@ -89,6 +90,32 @@ function iniciarServicos() {
         }
         return;
       }
+      if (req.url === "/api/AutoTransformation/generate-for-layout") {
+        const request = JSON.parse(body);
+        mapperRequests.push({ route: "generate", body: request });
+        res.setHeader("Content-Type", "application/json");
+        res.end(
+          JSON.stringify({
+            success: true,
+            layoutGuid: request.layoutGuid,
+            layoutName: request.layoutName,
+            generatedFiles: [
+              `/tmp/${request.layoutName}.tcl`,
+              `/tmp/${request.layoutName}.xsl`,
+            ],
+            errors: [],
+            warnings: [],
+          })
+        );
+        return;
+      }
+      if (req.url === "/api/transformation-execution/execute") {
+        const request = JSON.parse(body);
+        mapperRequests.push({ route: "execute", body: request });
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ success: true, transformedXml: "<NFe>ACEITAR</NFe>" }));
+        return;
+      }
 
       res.statusCode = 404;
       res.end("not found");
@@ -102,11 +129,58 @@ function iniciarServicos() {
       resolve({
         server,
         posts,
+        mapperRequests,
         baseUrl: `http://127.0.0.1:${port}`,
       });
     });
   });
 }
+
+test("FIAT gera TCL/XSL na API, transforma o TXT e é aceito pelo Pollux", { timeout: 120_000 }, async (t) => {
+  const servicos = await iniciarServicos();
+  t.after(() => servicos.server.close());
+  const cacheWindows = process.env.LOCALAPPDATA
+    ? path.join(process.env.LOCALAPPDATA, "Cypress", "Cache")
+    : undefined;
+
+  const cypress = await executar(
+    process.execPath,
+    [
+      cypressCli,
+      "run",
+      "--config-file",
+      "cypress.mapper.config.js",
+      "--env",
+      [
+        `layoutParserApiUrl=${servicos.baseUrl}`,
+        `poluxUrlInserirDocumento=${servicos.baseUrl}/pollux/inserir`,
+        `poluxUrlConsultarProtocolo=${servicos.baseUrl}/pollux/consultar`,
+      ].join(","),
+      "--spec",
+      "cypress/e2e/nfe-emissao-normal.cy.js",
+    ],
+    {
+      env:
+        process.platform === "win32" && cacheWindows
+          ? { CYPRESS_CACHE_FOLDER: cacheWindows }
+          : {},
+    }
+  );
+  assert.equal(cypress.code, 0, cypress.stderr || cypress.stdout);
+
+  assert.deepEqual(
+    servicos.mapperRequests.map((request) => request.route),
+    ["generate", "execute"]
+  );
+  const generation = servicos.mapperRequests[0].body;
+  const execution = servicos.mapperRequests[1].body;
+  assert.equal(generation.layoutName, "LAY_TXT_MQSERIES_ENVNFE_4.00_NFe");
+  assert.equal(generation.layoutGuid, "ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c");
+  assert.equal(execution.layoutName, generation.layoutName);
+  assert.equal(execution.fileName, "QMWNFe1_QMWNFE1.SAPiens_MRB.INBOX_07-11-2025.mq_series.txt");
+  assert.equal(typeof execution.inputContent, "string");
+  assert.ok(execution.inputContent.length > 30_000, "TXT posicional completo deve chegar à API");
+});
 
 function escreverRun(runDir) {
   fs.mkdirSync(path.join(runDir, "candidates"), { recursive: true });

@@ -16,6 +16,21 @@ module.exports = defineConfig({
     taskTimeout: 180000,
 
     setupNodeEvents(on, config) {
+      // Configuração operacional da VM. Variáveis LP_* têm precedência sobre o arquivo
+      // cypress.env.json local e somente valores públicos necessários ao browser são expostos.
+      config.expose = {
+        ...(config.expose || {}),
+        layoutParserApiUrl: process.env.LP_API_URL || config.env.layoutParserApiUrl || null,
+        poluxUrlInserirDocumento:
+          process.env.LP_POLLUX_URL_INSERIR || config.env.poluxUrlInserirDocumento || null,
+        poluxUrlConsultarProtocolo:
+          process.env.LP_POLLUX_URL_CONSULTAR || config.env.poluxUrlConsultarProtocolo || null,
+        fiatLayoutName:
+          process.env.LP_FIAT_LAYOUT_NAME || config.env.fiatLayoutName || config.env.layoutName || null,
+        mapperGenerationTimeoutMs: Number(config.env.mapperGenerationTimeoutMs || 120000),
+        mapperExecutionTimeoutMs: Number(config.env.mapperExecutionTimeoutMs || 120000),
+      };
+
       // ── Job 2 (modo batch) — descoberta dos candidatos do Job 1 ──────────────────────
       //
       // A descoberta acontece AQUI, em Node, de forma síncrona, ANTES de a spec carregar.
@@ -46,7 +61,7 @@ module.exports = defineConfig({
       // precisam estar disponíveis sincronamente no load da spec, então Cypress.expose() é
       // o substituto apropriado. Mantemos config.env acima apenas para as tasks Node.
       config.expose = {
-        ...(config.expose || {}),
+        ...config.expose,
         lpRunDir: info.runDir,
         lpRunId: info.runId,
         lpCandidates: info.candidates,
