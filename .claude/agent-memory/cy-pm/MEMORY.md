@@ -31,3 +31,21 @@ consolidando pedido → harness → dados → desenho (`@cy-architect`) → impl
 - Não criei issues (aguardando confirmação do rascunho).
 - Não fiz commit/push da spec `.cy.js` (autoridade de `@qa-cypress`/`@cy-devops`).
 - Não editei CI/segredos (autoridade exclusiva de `@cy-devops`).
+
+## Rodada 2026-08-29 (cont.) — issues formalizadas + linkadas ao Project #4
+
+Dono confirmou o rascunho dos 4 itens acima. Criadas as issues em
+`LayoutParser/LayoutParserCypress` e adicionadas ao Project #4 (`LayoutParserCypress —
+Backlog`):
+
+- **#3** — story: implementar harness de agentes espelhando LayoutParserApi/LayoutParserReact
+- **#4** — story: cenário e2e FIAT — Sysmiddle e TCL/XSL validados contra Pollux
+- **#5** — blocked: validação e2e FIAT sysmiddle/tcl-xsl não rodou — API fora do ar
+- **#6** — story: desenhar fluxo e2e via UI (front-end React) — bloqueado por divergência de
+  contrato (`execute-candidates` vs. `generate-for-layout`+`execute`)
+
+Todas as 4 já têm item correspondente no Project #4 via `gh project item-add`.
+
+### Não fiz nesta rodada (cont.)
+- Não fiz `git push` — só commit local do MEMORY.md atualizado, se solicitado.
+- Não editei CI/segredos.
