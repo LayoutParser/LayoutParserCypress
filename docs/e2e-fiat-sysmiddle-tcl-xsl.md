@@ -137,3 +137,27 @@ Isso já está **ativo** no repositório.
 Enquanto #7 e #8 não forem resolvidas, nem os workflows de CI rodam de ponta a ponta nem a
 suíte pode ser validada localmente — a pendência de execução registrada na seção 7 acima
 (issue [#5](https://github.com/LayoutParser/LayoutParserCypress/issues/5)) continua aberta.
+
+## 10. Atualização 2026-08-29 — causas reais dos bloqueios
+
+A leitura de "API fora do ar" da seção 6/7 estava incompleta. O usuário confirmou a causa raiz
+real dos dois `it()` que falharam na rodada de `npm run test:mappers` (ver
+`.claude/agent-memory/qa-cypress/run-2026-08-29-nfe-emissao-normal.md`): não é infra
+momentânea, são dois bloqueios de escopo/desenvolvimento pendente do lado da
+**LayoutParserApi**, fora do controle deste repo de testes.
+
+1. **`execute-lowcode` retorna 401.** O endpoint passou a exigir login OAuth (Google/Microsoft)
+   numa mudança recente da LayoutParserApi. Não existe hoje mecanismo de
+   autenticação/tokenização de serviço (não interativo) para clientes automatizados como o
+   Cypress — precisa ser decidido/desenvolvido do lado da API. Rastreado em
+   [#9](https://github.com/LayoutParser/LayoutParserCypress/issues/9).
+2. **`generate-for-layout` retorna `success:false, "Tipo de layout não suportado: 2"`** para o
+   layout FIAT (`layoutType: "2"`). Hipótese plausível (não confirmada) do usuário: o
+   desenvolvimento do TCL/XSL na API ainda não está completo para esse tipo de layout.
+   Alternativa não descartada: o GUID/layout usado no spec está desatualizado. Precisa
+   confirmação de quem mantém a LayoutParserApi. Rastreado em
+   [#10](https://github.com/LayoutParser/LayoutParserCypress/issues/10).
+
+Issue [#5](https://github.com/LayoutParser/LayoutParserCypress/issues/5) foi comentada com este
+contexto e continua aberta — evoluiu de "bloqueio de infra" para "bloqueio de escopo/dev
+pendente na API", não foi resolvida.
