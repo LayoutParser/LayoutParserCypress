@@ -1,0 +1,31 @@
+name: Enforce develop -> master
+
+# Regra do repo: master so recebe merge vindo de develop. Nenhuma outra branch
+# (feature, hotfix, etc.) pode abrir PR direto contra master - o fluxo correto e
+# sempre feature -> develop -> master.
+#
+# Este check fica registrado como "required" na protecao de branch de master
+# (ver .claude/rules/agent-authority.md); sem ele, o merge do PR fica bloqueado.
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  check-source-branch:
+    name: PR para master vem de develop?
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar branch de origem
+        run: |
+          echo "Base: ${{ github.event.pull_request.base.ref }}"
+          echo "Head: ${{ github.event.pull_request.head.ref }}"
+          if [ "${{ github.event.pull_request.head.ref }}" != "develop" ]; then
+            echo "::error::PRs para master só podem vir de develop. Esta PR vem de '${{ github.event.pull_request.head.ref }}'. Abra o PR contra develop primeiro."
+            exit 1
+          fi
+          echo "OK: PR vem de develop."
