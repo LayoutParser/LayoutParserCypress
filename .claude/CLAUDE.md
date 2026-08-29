@@ -48,9 +48,28 @@ Ambiente de **desenvolvimento** — e-forms/Pollux (SEFAZ fake da NDD). URLs e c
 `cypress.env.json` (gitignored, NUNCA commitado) — ver `cypress.env.json.example` pro que
 precisa ser preenchido localmente.
 
-## 4. Agente
+## 4. Sistema de Agentes
 
-`@qa-cypress` — único agente deste repo (ver `.claude/agents/qa-cypress.md`).
+Ative com `@agent-name`. Ver `.claude/README.md` para a estrutura completa do harness.
+
+| Agente | Persona | Escopo principal |
+|--------|---------|------------------|
+| `@cy-architect` | **Aria** | Desenha o fluxo e2e (UI React → API/Ollama → Pollux). **Não implementa.** |
+| `@qa-cypress` | **Cass** | Implementa/roda specs do gate padrão de mapeadores (inclusive via UI). |
+| `@cy-ai-flow` | **Lia-e2e** | Fluxo de candidatos sintetizados por IA/Ollama (`ia-candidates-batch.cy.js`). |
+| `@cy-devops` | **Gage-e2e** | `git push`/`gh pr` (EXCLUSIVO), CI, segredos (`cypress.env.json`). |
+| `@cy-doc` | **Duda-e2e** | Documentação bilíngue deste repo. |
+
+Fluxo típico: `@cy-architect → @qa-cypress / @cy-ai-flow → @cy-doc → @cy-devops`.
+Detalhe de autoridade: [`.claude/rules/agent-authority.md`](../.claude/rules/agent-authority.md).
+
+### Teste e2e completo (front + API/Ollama + Pollux)
+
+Escopo expandido além do gate direto-à-API: um cenário pode abrir a UI do LayoutParserReact
+(upload de TXT + seleção de layout), disparar `generate-for-layout` (usa Ollama na
+LayoutParserApi) → `execute`, e então submeter o `transformedXml` ao Pollux — mesma exigência
+de veredito (`cStat=100`) do gate padrão. Ver `@cy-architect` para desenhar e `@qa-cypress`
+missão `e2e-ui-flow` para implementar.
 
 ## 5. Segurança
 

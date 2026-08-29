@@ -14,6 +14,9 @@ const casos = [
     layoutGuid: "ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c",
     fixture: "txt-input/nfe-emissao-normal.mq_series.txt",
     fileName: "QMWNFe1_QMWNFE1.SAPiens_MRB.INBOX_07-11-2025.mq_series.txt",
+    // Sysmiddle low-code (execute-lowcode) — sem LLM, exige mapperId/package do catálogo.
+    mapperId: "MAP_f31a6758-69c9-4cf6-92d2-24f0e27a1ab5",
+    mapperPackage: "938f9978-836f-48c1-9c0f-c2898caf4b20",
   },
 ];
 
@@ -40,7 +43,64 @@ function validarAceitacaoPollux(xmlTransformado, cliente) {
 
 describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → Pollux", () => {
   casos.forEach((caso) => {
-    it(`${caso.cliente} — gera, transforma e obtém autorização do Pollux`, () => {
+    it(`${caso.cliente} [sysmiddle] — execute-lowcode → Pollux`, () => {
+      const apiUrl = Cypress.expose("layoutParserApiUrl");
+      expect(apiUrl, "layoutParserApiUrl (LP_API_URL ou cypress.env.json)")
+        .to.be.a("string")
+        .and.not.be.empty;
+
+      const lowcodeTimeout = Number(Cypress.expose("mapperLowcodeTimeoutMs") || 120000);
+
+      cy.fixture(caso.fixture, "utf-8").then((txtInput) => {
+        cy.request({
+          method: "POST",
+          url: `${apiUrl}/api/TransformationExecution/execute-lowcode`,
+          body: {
+            inputContent: txtInput,
+            mapperId: caso.mapperId,
+            package: caso.mapperPackage,
+            fileName: caso.fileName,
+          },
+          failOnStatusCode: false,
+          timeout: lowcodeTimeout,
+        }).then((lowcodeResponse) => {
+          cy.log(`[${caso.cliente}] status execute-lowcode: ${lowcodeResponse.status}`);
+
+          expect(
+            lowcodeResponse.status,
+            `execute-lowcode falhou: ${JSON.stringify(lowcodeResponse.body).slice(0, 800)}`
+          ).to.eq(200);
+          expect(lowcodeResponse.body.success, "success=true no execute-lowcode").to.eq(true);
+
+          const xmlTransformado = lowcodeResponse.body.transformedXml;
+          expect(xmlTransformado, "transformedXml presente e não vazio")
+            .to.be.a("string")
+            .and.not.be.empty;
+
+          // Armadilha documentada: existe um mapper homônimo da Marelli
+          // (MAP_MARELLI_MQSERIES_SEND_ENV_TXT_XML_NFE) que roda com exit=0 mas produz XML
+          // incompleto. Elementos a mais (B2B/comb/descANP) + elementos faltando
+          // (total/ICMSTot/transp/cobr/pag/compra) é sinal de "mapper errado", não regressão
+          // fiscal real (regra que falha remove nós, não inventa).
+          ["<total>", "<ICMSTot>", "<transp>", "<cobr>", "<pag>", "<compra>"].forEach((tag) => {
+            expect(
+              xmlTransformado,
+              `transformedXml deve conter ${tag} — ausência sugere mapper errado (Marelli?), não regressão fiscal`
+            ).to.include(tag);
+          });
+          ["<B2B>", "<comb>", "<descANP>"].forEach((tag) => {
+            expect(
+              xmlTransformado,
+              `transformedXml NÃO deve conter ${tag} — presença sugere mapper errado (Marelli?), não regressão fiscal`
+            ).to.not.include(tag);
+          });
+
+          validarAceitacaoPollux(xmlTransformado, `${caso.cliente} [sysmiddle]`);
+        });
+      });
+    });
+
+    it(`${caso.cliente} [tcl-xsl] — generate-for-layout + execute → Pollux`, () => {
       const apiUrl = Cypress.expose("layoutParserApiUrl");
       expect(apiUrl, "layoutParserApiUrl (LP_API_URL ou cypress.env.json)")
         .to.be.a("string")
@@ -113,7 +173,7 @@ describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → 
               .to.be.a("string")
               .and.not.be.empty;
 
-            validarAceitacaoPollux(xmlTransformado, caso.cliente);
+            validarAceitacaoPollux(xmlTransformado, `${caso.cliente} [tcl-xsl]`);
           });
         });
       });

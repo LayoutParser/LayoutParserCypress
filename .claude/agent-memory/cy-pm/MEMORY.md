@@ -71,3 +71,27 @@ as novas pendências #7/#8 (não fechei #5 — continua bloqueada até #7 e #8 r
 
 Atualizado `docs/e2e-fiat-sysmiddle-tcl-xsl.md` com seção 9 "Atualização 2026-08-29 — CI/CD e
 branch protection".
+
+## Rodada 2026-08-29 (cont. 3) — causa raiz real dos bloqueios (não é mais "API fora do ar")
+
+Usuário confirmou, via `.claude/agent-memory/qa-cypress/run-2026-08-29-nfe-emissao-normal.md`,
+que os 2 `it()` que falharam na rodada de `test:mappers` não são infra momentânea, são
+bloqueios reais de escopo/dev pendente do lado da **LayoutParserApi**:
+
+1. `execute-lowcode` retorna 401 — API agora exige OAuth (Google/Microsoft), sem mecanismo de
+   autenticação de serviço/tokenização não interativa para clientes automatizados (Cypress).
+   Trabalho novo a decidir/desenvolver na API.
+2. `generate-for-layout` retorna `success:false, "Tipo de layout não suportado: 2"` para o
+   layout FIAT — hipótese plausível (não confirmada) de TCL/XSL incompleto pra esse layoutType;
+   alternativa não descartada é GUID/layout desatualizado no spec.
+
+Ações tomadas:
+- Comentário em **#5** explicando a mudança de causa (infra → escopo/dev pendente na API);
+  **não fechei #5**, ela evoluiu, não foi resolvida.
+- Criadas issues **#9** (`blocked:` OAuth/tokenização de serviço) e **#10** (`blocked:`
+  confirmar status TCL/XSL do layoutType FIAT), ambas deixando explícito que a correção é do
+  lado da LayoutParserApi, não deste repo. Ambas adicionadas ao Project #4.
+- `docs/e2e-fiat-sysmiddle-tcl-xsl.md` ganhou seção 10 "Atualização 2026-08-29 — causas reais
+  dos bloqueios", linkando #5/#9/#10.
+- Commit local (sem push) só do arquivo de doc que eu mesma escrevi — não toquei nos demais
+  arquivos modificados/untracked de outros agentes (harness `.claude/`, specs, config etc.).

@@ -1,0 +1,3 @@
+# Memória — @cy-architect
+
+- [Desenho fluxo e2e via UI — gate FIAT](design_flow_fiat_ui.md) — passos UI→API→Ollama→Pollux; ATENÇÃO: contrato UI (`execute-candidates`) pode divergir do gate atual (`generate-for-layout`+`execute`), pendente confirmação com @lp-front-dev. Atualização 2026-08-29: fixture TXT/gabarito já commitados com dado próprio NDD (não anonimizar); endpoint Sysmiddle já existe (`execute-lowcode`); desenho de 2 envios ao Pollux (Sysmiddle + TCL/XSL). FECHADO: MapperId=MAP_f31a6758-69c9-4cf6-92d2-24f0e27a1ab5, Package=938f9978-836f-48c1-9c0f-c2898caf4b20 confirmados; asserção anti-armadilha contra mapper Marelli homônimo incluída; pronto para @qa-cypress implementar.

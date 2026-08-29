@@ -88,9 +88,14 @@ protection — PERDIDO"), mas a causa raiz é diferente aqui:
   a limitação de plano privado não se aplica aqui. O 404 acima significa apenas "ainda não
   configurada", não "impossível de configurar".
 
-Por instrução explícita recebida nesta sessão, nenhuma tentativa de
-`gh api ... -X PUT .../protection` foi feita — a criação de regra de proteção real (required
-status check apontando pro job `ci-dev` / `merge-gate`, restrição de push direto) fica como
-decisão do usuário, não do agente. Se o usuário quiser habilitar enforcement técnico de
-verdade neste repo (diferente dos repos irmãos, aqui é tecnicamente possível), isso deve ser
-pedido explicitamente a `@cy-devops`.
+**Atualização 2026-08-29 — habilitada de verdade.** O usuário pediu explicitamente para
+ativar. Ativado via `gh api --method PUT repos/LayoutParser/LayoutParserCypress/branches/master/protection`:
+
+- `required_pull_request_reviews`: 1 aprovação, descarta aprovações velhas em novo push.
+- `required_status_checks.contexts`: `["Gate dos mapeadores (dev)"]` (job de `ci-dev.yml`), `strict=true` (branch precisa estar atualizada com `master`).
+- `allow_force_pushes=false`, `allow_deletions=false`.
+- `enforce_admins=false` — o dono do repo ainda pode contornar em emergência; mude para `true` se quiser que nem admin escape.
+
+A partir de agora, ao contrário do LayoutParserApi/LayoutParserReact, um `git push` direto em
+`master` deste repo **é rejeitado pelo GitHub de verdade**, não só por convenção. Só PR com 1
+aprovação + CI verde (`ci-dev.yml`) consegue mergear.
