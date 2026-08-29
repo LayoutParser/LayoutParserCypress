@@ -102,3 +102,38 @@ fica pendente até rodar de novo com a API no ar.
 - Desenho: [`.claude/agent-memory/cy-architect/design_flow_fiat_ui.md`](../.claude/agent-memory/cy-architect/design_flow_fiat_ui.md)
 - Spec: [`cypress/e2e/nfe-emissao-normal.cy.js`](../cypress/e2e/nfe-emissao-normal.cy.js)
 - CLAUDE.md do repo: [`.claude/CLAUDE.md`](../.claude/CLAUDE.md)
+
+## 9. Atualização 2026-08-29 — CI/CD e branch protection
+
+`@cy-devops` criou `.github/workflows/{ci-dev,merge-gate,prod-gate}.yml` e os GitHub
+Environments `development`/`production` (ainda vazios, sem secrets/vars). Documentou em
+`.claude/rules/agent-authority.md` que este repo é **público** — diferente do
+LayoutParserApi/LayoutParserReact, que são privados — logo branch protection nativa do GitHub
+é tecnicamente viável aqui (não é o caso nos repos privados do ecossistema).
+
+O usuário pediu explicitamente para habilitar de verdade, e a proteção foi ativada via
+`gh api --method PUT repos/LayoutParser/LayoutParserCypress/branches/master/protection`:
+
+- 1 aprovação obrigatória em Pull Request;
+- status check `Gate dos mapeadores (dev)` obrigatório antes de merge;
+- push direto e force-push em `master` bloqueados;
+- exclusão da branch `master` bloqueada.
+
+Isso já está **ativo** no repositório.
+
+**Pendências abertas, rastreadas como issues:**
+
+- [#7](https://github.com/LayoutParser/LayoutParserCypress/issues/7) — preencher
+  secrets/vars reais nos Environments `development`/`production` (vars
+  `LP_LAYOUT_PARSER_API_URL`, `LP_POLLUX_URL`, `LP_CNPJ_EMITENTE_TESTE`; secrets
+  `LP_POLLUX_USERNAME`, `LP_POLLUX_PASSWORD`). Só o usuário pode preencher, pela UI do GitHub.
+- [#8](https://github.com/LayoutParser/LayoutParserCypress/issues/8) — acesso de rede
+  WSL↔Windows para rodar a suíte localmente: `curl` a `localhost:5214` e
+  `172.19.176.1:5214` (gateway WSL) retornam conexão recusada mesmo com a LayoutParserApi
+  supostamente rodando no Windows. Causa provável: Kestrel escutando só em `127.0.0.1`.
+  Orientação passada: `dotnet run --urls "http://0.0.0.0:5214"` ou `netsh interface
+  portproxy`.
+
+Enquanto #7 e #8 não forem resolvidas, nem os workflows de CI rodam de ponta a ponta nem a
+suíte pode ser validada localmente — a pendência de execução registrada na seção 7 acima
+(issue [#5](https://github.com/LayoutParser/LayoutParserCypress/issues/5)) continua aberta.
