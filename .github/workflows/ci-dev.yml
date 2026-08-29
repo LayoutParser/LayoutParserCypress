@@ -1,0 +1,69 @@
+name: CI Dev (LayoutParserCypress)
+
+# Gate padrao dos mapeadores contra o ambiente de DESENVOLVIMENTO (LayoutParserApi + e-forms/
+# Pollux fake da NDD). Roda em push/PR contra master. Nao faz deploy - este repo nao publica
+# artefato, so valida que o fluxo TXT -> transformacao -> Pollux continua aceitando a NF-e.
+#
+# As credenciais/URLs de dev NUNCA sao hardcoded aqui: vem do GitHub Environment
+# "development" (secrets.* / vars.*), mapeadas para as variaveis LP_* que
+# cypress.config.js / cypress.mapper.config.js ja sabem ler (mesma precedencia do
+# cypress.env.json local, que continua gitignored).
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-dev-cypress-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-mappers:
+    name: Gate dos mapeadores (dev)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: development
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Rodar gate dos mapeadores (test:mappers)
+        env:
+          LP_LAYOUT_PARSER_API_URL: ${{ vars.LP_LAYOUT_PARSER_API_URL }}
+          LP_POLLUX_URL: ${{ vars.LP_POLLUX_URL }}
+          LP_POLLUX_USERNAME: ${{ secrets.LP_POLLUX_USERNAME }}
+          LP_POLLUX_PASSWORD: ${{ secrets.LP_POLLUX_PASSWORD }}
+          LP_CNPJ_EMITENTE_TESTE: ${{ vars.LP_CNPJ_EMITENTE_TESTE }}
+        run: npm run test:mappers
+
+      - name: Upload de evidências (vídeos/screenshots) em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-mappers-evidence
+          path: |
+            cypress/videos
+            cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,67 @@
+name: Prod Gate (manual)
+
+# Roda a suite de mapeadores contra o GitHub Environment "production".
+#
+# IMPORTANTE: gatilho exclusivamente MANUAL (workflow_dispatch). NUNCA automatico em push/PR -
+# este repo testa contra e-forms/Pollux, e "producao" aqui significa o ambiente de producao
+# do Pollux/LayoutParserApi (nao um deploy deste proprio repo, que nao publica nada). Disparar
+# sem necessidade gera trafego/dados de teste contra um ambiente real - so rode quando
+# alguem decidir deliberadamente validar producao.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: 'Digite "producao" para confirmar que voce quer rodar contra o ambiente de producao'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-gate-cypress
+  cancel-in-progress: false
+
+jobs:
+  test-mappers-prod:
+    name: Gate dos mapeadores (produção)
+    if: github.event.inputs.confirmacao == 'producao'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Rodar gate dos mapeadores (test:mappers) contra produção
+        env:
+          LP_LAYOUT_PARSER_API_URL: ${{ vars.LP_LAYOUT_PARSER_API_URL }}
+          LP_POLLUX_URL: ${{ vars.LP_POLLUX_URL }}
+          LP_POLLUX_USERNAME: ${{ secrets.LP_POLLUX_USERNAME }}
+          LP_POLLUX_PASSWORD: ${{ secrets.LP_POLLUX_PASSWORD }}
+          LP_CNPJ_EMITENTE_TESTE: ${{ vars.LP_CNPJ_EMITENTE_TESTE }}
+        run: npm run test:mappers
+
+      - name: Upload de evidências (vídeos/screenshots) em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-mappers-evidence-prod
+          path: |
+            cypress/videos
+            cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 14

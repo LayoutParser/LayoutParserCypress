@@ -1,0 +1,59 @@
+name: Merge Gate (sinalização)
+
+# ATENCAO - LEIA ANTES DE ASSUMIR QUE ISTO BLOQUEIA MERGE:
+#
+# Este repo (LayoutParser/LayoutParserCypress) e PUBLICO no GitHub Free, o que
+# tecnicamente permite branch protection classica nativa (diferente do caso do
+# LayoutParserApi/LayoutParserReact, que sao privados no Free e por isso NAO tem acesso a
+# "required status checks"). Mesmo assim, branch protection nativa para "master" ainda NAO
+# foi configurada neste repo (decisao registrada em .claude/rules/agent-authority.md) -
+# a autoridade de push continua sendo por convencao (so @cy-devops publica), nao por
+# bloqueio tecnico do GitHub.
+#
+# Ou seja: este workflow RODA o gate e REPORTA o status (check) no PR, mas um merge manual
+# feito por qualquer pessoa com permissao de escrita no repo NAO E IMPEDIDO por ele hoje.
+# Serve como sinalizacao visual forte, nao como enforcement.
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merge-gate-cypress-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  status-check:
+    name: Gate dos mapeadores (sinalização de PR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: development
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Rodar gate dos mapeadores (test:mappers)
+        env:
+          LP_LAYOUT_PARSER_API_URL: ${{ vars.LP_LAYOUT_PARSER_API_URL }}
+          LP_POLLUX_URL: ${{ vars.LP_POLLUX_URL }}
+          LP_POLLUX_USERNAME: ${{ secrets.LP_POLLUX_USERNAME }}
+          LP_POLLUX_PASSWORD: ${{ secrets.LP_POLLUX_PASSWORD }}
+          LP_CNPJ_EMITENTE_TESTE: ${{ vars.LP_CNPJ_EMITENTE_TESTE }}
+        run: npm run test:mappers
