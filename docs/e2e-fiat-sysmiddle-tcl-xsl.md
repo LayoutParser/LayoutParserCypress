@@ -2,13 +2,13 @@
 
 **Data:** 2026-08-29 (última atualização: 2026-09-10)
 **Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode`.
-Time LayoutParserApi respondeu ao reteste (ver seção 14): duckdns classificado como
-"ambiente incorreto por design" (passa pelo BFF) — #15 aguardando confirmação do dono do
-repo para fechar; instância local `172.19.176.1:5100` seguiria bloqueada por
-checkout/binário desatualizado (scheme M2M não ativo) — checklist deles (`git pull` +
-restart) **ainda não executado**, pendente de esclarecer divergência de PR/branch (ver
-seção 14). Caminho `tcl-xsl` bloqueado por XSL ausente pro layout FIAT (#14); UI (front-end)
-fora deste cenário, bloqueada por dúvida de contrato (#6).
+Checklist técnico do time LayoutParserApi executado de verdade em clone limpo (ver seção
+16): config M2M confirmada carregada corretamente, mas **causa raiz real encontrada** —
+mismatch de formato de issuer v1/v2 do Entra (`IDX10205`). Pergunta enviada ao time da API
+sobre qual das duas correções aplicar. `layoutparser.duckdns.org` (#15) classificado pelo
+time da API como "ambiente incorreto por design" (passa pelo BFF) — aguardando confirmação
+do dono do repo para fechar. Caminho `tcl-xsl` bloqueado por XSL ausente pro layout FIAT
+(#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato (#6).
 **Data:** 2026-08-29
 **Status:** implementado, não commitado — execução real bloqueada por API fora do ar; UI (front-end) fora deste cenário, bloqueada por dúvida de contrato.
 
@@ -418,3 +418,89 @@ Isso depende de decisão do usuário sobre quem/como executa (precisa de dotnet 
 disponível e possivelmente `Database__Password`) — não decidido nem executado por
 `@cy-pm`. O time da API afirma que, feito isso, a issue #13 pode ser fechada; fechamento
 fica a critério do dono do repo, não de `@cy-pm`.
+
+## 16. Atualização 2026-09-10 (noite) — checklist executado, causa raiz real encontrada: mismatch de issuer v1/v2 do Entra
+
+O checklist técnico pendente na seção 15 foi finalmente executado, de verdade, contra um
+clone limpo.
+
+### O que foi feito
+
+1. Clone limpo em `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`, branch
+   `master`. Confirmado que `bb458fa` (#305, scheme M2M) e `39d9cbd` (#316, Authority/
+   Audience) são ancestrais de HEAD, e que `appsettings.json` já traz o bloco
+   `Authentication:ServiceClient` com
+   `Authority="https://login.microsoftonline.com/8de72b5f-31a7-44aa-831e-d60750ab55d7/v2.0"`
+   e `Audience="api://f76c2598-4759-48a9-8145-8a967ec7ac96"`.
+2. Build ok (0 erros). API subida a partir desse clone limpo. Bind forçado em loopback
+   (`127.0.0.1:5000`) por design de segurança — confirmado no log ("Identidade do BFF ATIVA
+   com guarda de loopback... origem remota é ignorada", warning "Overriding address(es)
+   'http://0.0.0.0:5200'. Binding to endpoints defined via IConfiguration") — exatamente
+   como o time da API descreveu.
+3. **Ausência do warning** "Authentication:ServiceClient não configurado (Authority/
+   Audience vazios)" no log de startup confirma que a config M2M carregou corretamente
+   nesta instância nova.
+4. Como o Cypress roda como processo Windows nativo (node.exe/Electron, não processo WSL),
+   consegue alcançar `127.0.0.1:5000` diretamente mesmo executado via WSL bash.
+   Reapontamos `cypress.env.json` (`layoutParserApiUrl`) temporariamente para
+   `http://127.0.0.1:5000` e rodamos `nfe-emissao-normal.cy.js` de verdade contra essa
+   instância nova.
+
+### Resultado — causa raiz real
+
+`execute-lowcode` **continua 401** (seco, sem `WWW-Authenticate`) — mas desta vez, com a
+config M2M confirmadamente carregada, o log da API durante essa requisição específica
+revelou a causa raiz real:
+
+```
+[WRN] Falha ao validar token ServiceClient (M2M)
+Microsoft.IdentityModel.Tokens.SecurityTokenInvalidIssuerException: IDX10205: Issuer validation failed.
+Issuer: 'https://sts.windows.net/8de72b5f-31a7-44aa-831e-d60750ab55d7/'.
+Did not match: validationParameters.ValidIssuer: 'null' or validationParameters.ValidIssuers: 'null' or
+validationParameters.ConfigurationManager.CurrentConfiguration.Issuer: 'https://login.microsoftonline.com/8de72b5f-31a7-44aa-831e-d60750ab55d7/v2.0'.
+```
+
+**Mismatch de formato de issuer v1 vs v2 do Entra.** O token M2M que o Cypress obtém via
+`POST https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token` (endpoint v2,
+`client_credentials`) vem de volta com `iss` = `https://sts.windows.net/{tenant}/` (formato
+v1/ADAL), não `https://login.microsoftonline.com/{tenant}/v2.0` (formato v2) que a API
+espera via `options.Authority` no `AddJwtBearer` (`Program.cs`, linhas ~224-250 do
+LayoutParserApi).
+
+Isso é comportamento clássico do Entra: quando o App Registration da API (recurso, aqui
+LayoutParserApi / audience `api://f76c2598-...`) tem a propriedade de manifesto
+`accessTokenAcceptedVersion` configurada como `1` (ou `null`, que também vira o default v1
+para App Registrations mais antigas), o Entra emite tokens v1 (issuer `sts.windows.net`)
+mesmo quando o CLIENTE pede via o endpoint v2 — o formato do token é decidido pelo
+manifesto do **recurso** (API), não pelo endpoint que o cliente chamou.
+
+**A config M2M está correta e o scheme está ativo — o bloqueio é especificamente esse
+mismatch de formato de issuer.**
+
+### Duas correções possíveis (qualquer uma resolve) — pergunta devolvida ao time da API
+
+1. **(a)** No App Registration "LayoutParserApi" (recurso, Client ID
+   `f76c2598-4759-48a9-8145-8a967ec7ac96`) no Entra, editar o Manifest e setar
+   `"accessTokenAcceptedVersion": 2` — o Entra passa a emitir tokens v2 com issuer
+   `.../v2.0`, batendo com a `Authority` configurada. Trade-off: mexe em config do Entra,
+   fora do código, pode afetar outros clientes que já dependem do formato v1 desse App
+   Registration.
+2. **(b)** OU, sem mexer no App Registration, ajustar a validação no `Program.cs`
+   (`AddJwtBearer`, por volta da linha 224) para aceitar ambos os formatos de issuer —
+   setar `options.TokenValidationParameters.ValidIssuers = new[] {
+   $"https://login.microsoftonline.com/{tenantId}/v2.0", $"https://sts.windows.net/{tenantId}/"
+   }` (ou equivalente configurável), já que ambos são o mesmo tenant/emissor, só formatos
+   diferentes de string. Trade-off: mexe em código da API, precisa novo deploy/PR.
+
+Comentado em
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13#issuecomment-5619023020)
+com a pergunta de qual correção o time da API prefere aplicar — nenhum agente decidiu por
+eles.
+
+### Encerramento do ambiente de reteste
+
+A instância de reteste foi encerrada (processo Windows PID 31488, `dotnet.exe`/
+`LayoutParserApi.exe`, finalizado) e `cypress.env.json` foi restaurado para o valor
+original (`172.19.176.1:5100`) — nada ficou rodando nem modificado permanentemente. O clone
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` ficou no disco (não
+removido) caso seja útil pra próximo reteste depois da correção.

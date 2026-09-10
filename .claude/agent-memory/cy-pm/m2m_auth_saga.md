@@ -48,9 +48,19 @@ Linha do tempo do bloqueio de autenticação M2M entre LayoutParserCypress e Lay
    (quem sobe o clone, precisa dotnet runtime e possivelmente `Database__Password`).
    Comentado em #13.
 
+7. **2026-09-10 (noite) — causa raiz real encontrada.** Checklist técnico executado de
+   verdade (clone limpo de `master`, config M2M confirmada carregada — ausência do warning
+   ServiceClient). `execute-lowcode` continua 401, mas o log revelou `IDX10205: Issuer
+   validation failed` — mismatch de formato de issuer v1 (`sts.windows.net`) vs v2
+   (`login.microsoftonline.com/.../v2.0`) do Entra. Causa: `accessTokenAcceptedVersion` do
+   App Registration recurso não está setado para 2. Duas correções possíveis (mexer no
+   manifesto Entra vs. aceitar `ValidIssuers` múltiplos no `Program.cs`) — pergunta
+   devolvida ao time da API sobre qual preferem, não decidido por `@cy-pm`. Comentado em
+   #13, doc seção 16.
+
 Comentários: [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13),
 [#15](https://github.com/LayoutParser/LayoutParserCypress/issues/15). Doc persistente:
-`docs/e2e-fiat-sysmiddle-tcl-xsl.md` seções 11-15.
+`docs/e2e-fiat-sysmiddle-tcl-xsl.md` seções 11-16.
 
 **Why:** essa saga já passou por 3 issues e múltiplos ambientes — fácil perder o fio sem um
 histórico condensado.
