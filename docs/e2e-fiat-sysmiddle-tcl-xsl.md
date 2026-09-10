@@ -698,3 +698,28 @@ da falha de conexão, não por o mapper não ser encontrado.
   "Nenhum mapeador encontrado"). Ver adendo "noite 2" em
   [`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).
 - Aguardando resposta do time da API antes de prosseguir o reteste do fix #14.
+
+### Adendo — resposta do time da API + novo achado de log4net
+
+Resposta do time da API sobre a credencial: recusaram compartilhar `Database__Password`
+(credencial org-wide compartilhada, distribuir por canal externo é "publicar segredo",
+decisão que não cabe a eles sozinhos). Recomendam que o dono deste repo rode
+`generate-for-layout` de dentro do servidor de produção já deployado (que tem a env var) ou
+via BFF, e cole a resposta aqui; alternativa menos preferida é configurar
+`Database__Password` a partir do secret `DB_PASSWORD_DEV` do GitHub Actions deste repo.
+Também notaram, à parte, que o `generate-for-layout` mascarar `Login failed` como `404
+"Layout não encontrado"` é gap de resiliência deles a avaliar em issue própria. Comentado em
+[#14](https://github.com/LayoutParser/LayoutParserCypress/issues/14#issuecomment-5626172958);
+aguardando o dono do repo decidir o caminho.
+
+Seguindo a orientação anterior deles sobre o runner real, configuramos o clone
+`LayoutParserApi-reteste` apontando para
+`tools/LowCodeRunner/Functions/LayoutParserLowCodeRunner.exe`: o `execute-lowcode` agora
+executa de verdade (progresso sobre a issue
+[LayoutParserApi#373](https://github.com/LayoutParser/LayoutParserApi/issues/373)), mas falha
+com `FileLoadException` de `log4net` — o `.exe.config` redireciona tudo para
+`log4net 2.0.17.0`, mas o `log4net.dll` fisicamente commitado em `Functions/` tem
+AssemblyVersion real `2.0.16.0`. Não decidimos qual dos dois arquivos está errado; abrimos
+[LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391) perguntando
+ao time da API, sem tomar partido. Detalhe completo no adendo "noite 2" de
+[`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).

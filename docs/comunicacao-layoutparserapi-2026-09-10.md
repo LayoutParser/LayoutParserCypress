@@ -521,3 +521,65 @@ lacuna.
 - Não decidimos aqui qual opção (a)/(b) é a correta — cabe ao time da API.
 - Deixar claro no envio que isso não é regressão do fix nem contesta os 772/772 testes verdes.
 - Texto pronto para copiar/colar no canal usado com o time da API.
+
+---
+
+## Adendo (2026-09-10, noite 2) — bug de log4net no LowCodeRunner
+
+Seguindo a resposta anterior de vocês sobre o runner real (`tools/LowCodeRunner/Functions/`,
+`LowCode:RunnerPath` configurável), configuramos o clone `LayoutParserApi-reteste` apontando
+para o runner real e subimos a API via `dotnet run`. O `execute-lowcode` agora **executa o
+runner de verdade** (progresso real — antes dava erro de arquivo não encontrado), mas falha
+com exit=1:
+
+```
+System.IO.FileLoadException: Could not load file or assembly 'log4net, Version=2.0.17.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a' or one of its dependencies. The located assembly's manifest definition does not match the assembly reference.
+File name: 'log4net, Version=2.0.16.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a'
+   at SysMiddle.Base.InstanceFactory.Initialize()
+   at SysMiddle.Base.InstanceFactory.get_Instance()
+   at LayoutParserLowCodeRunner.SysmiddleRuntime.Create(String globalFolder, String packageGuid)
+```
+
+Causa identificada por nós (sem decidir qual lado corrigir): em
+`tools/LowCodeRunner/Functions/LayoutParserLowCodeRunner.exe.config`, o binding redirect é:
+
+```xml
+<assemblyIdentity name="log4net" publicKeyToken="669e0ddf0bb1aa2a" culture="neutral" />
+<bindingRedirect oldVersion="0.0.0.0-2.0.17.0" newVersion="2.0.17.0" />
+```
+
+Redireciona tudo para 2.0.17.0. Mas o `log4net.dll` fisicamente presente em
+`tools/LowCodeRunner/Functions/log4net.dll` (versionado no git) tem **AssemblyVersion real
+2.0.16.0** (confirmado via `[System.Reflection.AssemblyName]::GetAssemblyName()` — o
+`FileVersion` do arquivo mostra `1.2.13.0`, mas o `AssemblyVersion` é 2.0.16.0, exatamente o
+que aparece no erro). O binding redirect aponta para uma versão que não bate com o binário
+que está de fato na pasta.
+
+**Pergunta objetiva, sem tomar partido**: qual dos dois está errado —
+(a) o `.exe.config` (deveria redirecionar para 2.0.16.0), ou
+(b) o `log4net.dll` commitado em `Functions/` (deveria ser a 2.0.17.0)?
+Pedimos que corrijam `tools/LowCodeRunner/Functions/` no repo, o que fizer sentido do lado de
+vocês.
+
+Isso só aparece quando `SysMiddle.Base.InstanceFactory.Initialize()` é chamado de verdade —
+por isso não apareceu antes, quando o runner só falhava por "arquivo não existe" (issue
+LayoutParserApi#373).
+
+Dado interessante: o próprio log do runner (`runnerLog`, versionado/gerado em
+`tools/LowCodeRunner/Functions/`) mostra execuções **bem-sucedidas anteriores** do mesmo
+mapper (`MAP_f31a6758-...`, "Mapeamento realizado com sucesso"), datadas de antes (ex.
+2026-08-28 e uma entrada de 2026-09-10 15:11 que já tinha rodado com sucesso) — sugerindo que
+em algum outro ambiente/máquina (provavelmente do time da API, ou uma máquina com o
+log4net.dll certo já instalado no GAC/side-by-side) isso funcionou. Reforça que é questão de
+qual `log4net.dll` está fisicamente na pasta `Functions/` deste checkout específico, não erro
+de lógica do runner em si.
+
+Limpeza feita após o teste: processo encerrado, `cypress.env.json` restaurado
+(`172.19.176.1:5100`).
+
+### Notas de uso deste adendo
+
+- Não decidimos qual dos dois arquivos (`.exe.config` ou `log4net.dll`) está errado — cabe ao
+  time da API.
+- Issue própria aberta para rastrear, linkada a esta e à LayoutParserApi#373: ver
+  `docs/e2e-fiat-sysmiddle-tcl-xsl.md`, seção 22 (extensão), para o número exato.
