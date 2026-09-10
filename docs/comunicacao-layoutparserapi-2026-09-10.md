@@ -87,3 +87,79 @@ Issues completas com todo o histórico, caso ajude: #13 (sintoma ambiente local)
 - Não contém segredo real: `client_id`/`scope`/`correlationId` aqui não são credenciais
   sensíveis (o `client secret` nunca é citado). Confirmar antes de enviar se o time de vocês
   tem alguma política própria de não expor `client_id` fora de canal interno.
+
+---
+
+## Adendo 2026-09-10 (tarde) — divergência de PR/branch na resposta deles
+
+**Status:** aguardando esclarecimento do time da LayoutParserApi antes de qualquer novo reteste.
+**Issue relacionada:** [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13)
+
+O time da LayoutParserApi respondeu ao reteste acima dizendo que a config M2M
+(`Authentication:ServiceClient:Authority`/`Audience`) já está presente no `appsettings.json`
+do `master`, citando as PRs **#360** e **#361**, mergeadas "hoje" (2026-09-10).
+
+Ao checar o checkout local da LayoutParserApi nesta máquina — **o único computador/checkout
+que temos disponível, não há outra máquina com `master` atualizado** — encontramos uma
+divergência:
+
+- O checkout está na branch `feat/xml-layout-sample-generator-356` (não `master`), com
+  working tree sujo (mudanças não commitadas em `Program.cs`,
+  `RepairOrchestratorXslSynthesizerService.cs`, `TrainingDataCaptureService.cs`, entre
+  outros arquivos).
+- `git log --oneline -5` nesse checkout mostra: `9337385` (issue #356), `f56d3fb` (merge PR
+  #362 `artifact-provenance-341`), `39c4909` (merge PR #360 `llm-provider-abstraction-340`),
+  `84c8e7c` (fix namespace), `9da2845` (merge PR #359 `endpoint-generate-sample-355`).
+- A PR **#361** não aparece em lugar nenhum desse log.
+- A PR **#360** que aparece é sobre `llm-provider-abstraction`, sem relação óbvia com
+  M2M/`ServiceClient`/`Authentication`.
+
+Isso já foi registrado como comentário/ressalva na issue #13. Abaixo, o prompt formal para
+pedir esclarecimento ao time antes de rodar qualquer novo reteste.
+
+### Mensagem para o time LayoutParserApi (esclarecimento de PR/branch)
+
+Olá! Antes de rodarmos o checklist técnico de vocês (subir a API, checar o warning do
+`ServiceClient`, retestar `execute-lowcode`), encontramos uma divergência que precisa ser
+esclarecida primeiro — porque este é o único computador/checkout que temos disponível para
+validar (não há outra máquina com `master` atualizado para comparar).
+
+Vocês citaram as PRs #360 e #361, mergeadas hoje em `master`, como a origem da config
+`Authentication:ServiceClient:Authority`/`Audience`. No nosso checkout local:
+
+- Estamos na branch `feat/xml-layout-sample-generator-356`, não em `master`, com trabalho
+  em andamento não commitado (issue #356).
+- O `git log` não mostra PR #361 em nenhum lugar.
+- A PR #360 visível no log é sobre `llm-provider-abstraction`, sem relação aparente com
+  M2M/`ServiceClient`.
+
+Precisamos que vocês nos ajudem com um dos dois caminhos:
+
+**(a) Confirmar o PR/branch correto** — se o merge do scheme M2M está em outra numeração de
+PR, ou em outra branch, ou se na verdade ainda não foi mergeado em `master` apesar do que
+foi informado, poderiam apontar exatamente onde está?
+
+**(b) Ou, se #360/#361 estão corretas em `master`,** nos orientar como sincronizar este
+checkout específico — que está em `feat/xml-layout-sample-generator-356` com mudanças locais
+não commitadas — até o ponto certo, sem perder o trabalho em andamento nessa branch (issue
+#356). Não queremos descartar esse trabalho para "simplesmente" trocar para `master`.
+
+Também pedimos que confirmem, para conferência local via `git log -p`/`git show`:
+
+1. Em qual arquivo exato os valores de `Authentication:ServiceClient:Authority`/`Audience`
+   foram introduzidos — `appsettings.json`? `appsettings.Development.json`? outro?
+2. Em qual commit/PR isso foi introduzido de fato (número exato).
+3. Se existe algum branch específico de deploy/release (diferente de `master`) que devemos
+   usar para validar isso, em vez de `master` diretamente.
+
+Só depois desse esclarecimento vamos rodar o checklist técnico de vocês (subir a API,
+verificar o warning do `ServiceClient`, retestar `execute-lowcode`) — não queremos repetir o
+reteste contra um checkout que pode estar desatualizado ou divergente do que vocês
+validaram.
+
+### Notas de uso deste adendo
+
+- Não decidimos aqui qual branch/PR está correta — isso depende da resposta do time da API.
+  As duas opções (a)/(b) ficam para o usuário escolher depois que a resposta chegar.
+- Texto pronto para copiar/colar no canal usado com o time da API (Slack, email, issue
+  cross-repo).

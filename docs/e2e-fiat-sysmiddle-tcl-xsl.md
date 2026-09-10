@@ -376,3 +376,11 @@ técnico (git pull + restart da instância local) ainda não foi executado** —
 esclarecimento do time da LayoutParserApi sobre essa divergência, e de decisão do usuário
 sobre qual checkout/branch usar. Isso é fora do escopo de `@cy-pm` (não decide nem executa
 esse checklist) — registrado aqui só para rastreabilidade.
+
+**Encaminhamento formal (2026-09-10, tarde):** prompt pronto para copiar/enviar ao time
+LayoutParserApi, pedindo esclarecimento sobre a divergência de PR/branch (opções: confirmar
+PR/branch correta, ou orientar como sincronizar o checkout local sem perder o trabalho em
+`feat/xml-layout-sample-generator-356`) e detalhes do commit/arquivo exato da config M2M —
+ver adendo em
+[`docs/comunicacao-layoutparserapi-2026-09-10.md`](comunicacao-layoutparserapi-2026-09-10.md).
+Comentado também em #13. Checklist técnico segue bloqueado até resposta.
