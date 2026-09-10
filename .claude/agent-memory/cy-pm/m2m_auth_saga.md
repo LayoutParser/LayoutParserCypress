@@ -33,6 +33,14 @@ preservados em ordem cronológica):
    a #14 (mapper Sysmiddle ausente). Detalhe completo em `docs/e2e-fiat-sysmiddle-tcl-xsl.md`
    seção 20.
 
+6. **Novo capítulo pós-saga M2M (2026-09-10, madrugada 2):** com auth 100% resolvida, o
+   próximo bloqueio do caminho `sysmiddle` é ambiental, não de auth: `LowCode:RunnerPath`
+   aponta para caminho de produção/IIS inexistente no host de dev. Já existe issue no
+   LayoutParserApi cobrindo a causa raiz (`LayoutParserApi#373`) — não abrimos issue nova,
+   só prompt formal perguntando fonte+build / path configurável / binário pré-buildado
+   (sem tomar partido). Detalhe em `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seção 21 e adendo
+   "madrugada 2" em `docs/comunicacao-layoutparserapi-2026-09-10.md`.
+
 **Ressalva de PR/branch:** ao repassar resposta de outro time citando PR/branch como
 evidência, sempre confirmar contra o checkout real antes de tratar como fato — já aconteceu
 divergência (#360/#361 citados errado, número real era #305/#316).
