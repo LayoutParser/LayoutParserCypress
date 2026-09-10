@@ -12,3 +12,6 @@ cypress.env.json
 # Logs
 npm-debug.log*
 *.log
+
+# Scratch/notas temporárias de sessão de agente — não é doc persistente
+.claude/temp/

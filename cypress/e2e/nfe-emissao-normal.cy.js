@@ -51,24 +51,33 @@ describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → 
 
       const lowcodeTimeout = Number(Cypress.expose("mapperLowcodeTimeoutMs") || 120000);
 
-      cy.fixture(caso.fixture, "utf-8").then((txtInput) => {
-        cy.request({
-          method: "POST",
-          url: `${apiUrl}/api/TransformationExecution/execute-lowcode`,
-          body: {
-            inputContent: txtInput,
-            mapperId: caso.mapperId,
-            package: caso.mapperPackage,
-            fileName: caso.fileName,
-          },
-          failOnStatusCode: false,
-          timeout: lowcodeTimeout,
-        }).then((lowcodeResponse) => {
+      // execute-lowcode é [Authorize] na LayoutParserApi — exige Bearer M2M (client_credentials,
+      // Entra ID). O token é obtido via cy.task (Node) para o client secret nunca trafegar pro
+      // contexto do browser onde a spec roda (ver cypress/support/lib/m2m-token.js).
+      cy.task("obterTokenM2M").then((tokenInfo) => {
+        cy.log(
+          `[${caso.cliente}] token M2M obtido (cached=${tokenInfo.cached}, statusCode=${tokenInfo.statusCode})`
+        );
+
+        cy.fixture(caso.fixture, "utf-8").then((txtInput) => {
+          cy.request({
+            method: "POST",
+            url: `${apiUrl}/api/TransformationExecution/execute-lowcode`,
+            headers: { Authorization: `Bearer ${tokenInfo.accessToken}` },
+            body: {
+              inputContent: txtInput,
+              mapperId: caso.mapperId,
+              package: caso.mapperPackage,
+              fileName: caso.fileName,
+            },
+            failOnStatusCode: false,
+            timeout: lowcodeTimeout,
+          }).then((lowcodeResponse) => {
           cy.log(`[${caso.cliente}] status execute-lowcode: ${lowcodeResponse.status}`);
 
           expect(
             lowcodeResponse.status,
-            `execute-lowcode falhou: ${JSON.stringify(lowcodeResponse.body).slice(0, 800)}`
+            `execute-lowcode falhou (status ${lowcodeResponse.status}): ${JSON.stringify(lowcodeResponse.body ?? null).slice(0, 800)}`
           ).to.eq(200);
           expect(lowcodeResponse.body.success, "success=true no execute-lowcode").to.eq(true);
 
@@ -96,6 +105,7 @@ describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → 
           });
 
           validarAceitacaoPollux(xmlTransformado, `${caso.cliente} [sysmiddle]`);
+          });
         });
       });
     });
@@ -123,7 +133,7 @@ describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → 
 
           expect(
             generationResponse.status,
-            `geração TCL/XSL falhou: ${JSON.stringify(generationResponse.body).slice(0, 800)}`
+            `geração TCL/XSL falhou (status ${generationResponse.status}): ${JSON.stringify(generationResponse.body ?? null).slice(0, 800)}`
           ).to.eq(200);
           expect(generationResponse.body.success, "success=true na geração TCL/XSL").to.eq(true);
           expect(generationResponse.body.layoutName, "layout exato selecionado no catálogo").to.eq(
@@ -164,7 +174,7 @@ describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → 
 
             expect(
               executionResponse.status,
-              `transformação falhou: ${JSON.stringify(executionResponse.body).slice(0, 800)}`
+              `transformação falhou (status ${executionResponse.status}): ${JSON.stringify(executionResponse.body ?? null).slice(0, 800)}`
             ).to.eq(200);
             expect(executionResponse.body.success, "success=true na transformação").to.eq(true);
 

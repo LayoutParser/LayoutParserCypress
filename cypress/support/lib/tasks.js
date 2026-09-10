@@ -13,6 +13,7 @@ const { caminhoXmlCandidato } = require("./manifest");
 const { appendResult, marcarPosted, OUTCOME_INFRA_ERROR } = require("./results");
 const { enviarDocumento } = require("./pollux");
 const { postCypressResult } = require("./api-client");
+const { obterTokenM2M } = require("./m2m-token");
 
 const DIR_FIXTURES_WS = path.resolve(__dirname, "..", "..", "fixtures", "webservices");
 
@@ -39,7 +40,30 @@ function criarTasks(contexto) {
   const esperaProtocoloMs = Number(process.env.LP_POLLUX_WAIT_MS || 5000);
   const timeoutMs = Number(process.env.LP_POLLUX_TIMEOUT_MS || 60000);
 
+  // M2M (JWT Bearer client_credentials, Entra ID) — usado por execute-lowcode ([Authorize]).
+  // Lido de env (cypress.env.json ou CYPRESS_*), nunca hardcoded.
+  const m2mTokenUrl = process.env.CYPRESS_m2mTokenUrl || env.m2mTokenUrl || null;
+  const m2mClientId = process.env.CYPRESS_m2mClientId || env.m2mClientId || null;
+  const m2mClientSecret = process.env.CYPRESS_m2mClientSecret || env.m2mClientSecret || null;
+  const m2mScope = process.env.CYPRESS_m2mScope || env.m2mScope || null;
+
   return {
+    /**
+     * Obtém (e cacheia em processo) um token M2M via client_credentials. Roda em Node — o
+     * client secret nunca chega ao contexto do browser onde a spec executa.
+     * Lança (rejeita) se a config M2M faltar ou o Entra ID recusar — a spec decide o que
+     * fazer com isso, mas NUNCA maquia como sucesso.
+     */
+    async obterTokenM2M() {
+      const resultado = await obterTokenM2M({
+        tokenUrl: m2mTokenUrl,
+        clientId: m2mClientId,
+        clientSecret: m2mClientSecret,
+        scope: m2mScope,
+      });
+      return resultado;
+    },
+
     /**
      * Submete um candidato ao Pollux. SEMPRE resolve — nunca lança.
      * Aceita `{ candidate }` (lê o XML do run dir) ou `{ xml }` (conteúdo direto).
