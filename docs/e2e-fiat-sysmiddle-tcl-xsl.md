@@ -384,3 +384,37 @@ PR/branch correta, ou orientar como sincronizar o checkout local sem perder o tr
 ver adendo em
 [`docs/comunicacao-layoutparserapi-2026-09-10.md`](comunicacao-layoutparserapi-2026-09-10.md).
 Comentado também em #13. Checklist técnico segue bloqueado até resposta.
+
+## 15. Atualização 2026-09-10 (noite) — divergência de PR/branch esclarecida, checklist ainda pendente
+
+O time da LayoutParserApi respondeu à ressalva da seção 14 e **corrigiu** a numeração de
+PR/commit citada antes. Comentário completo e literal em
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13#issuecomment-5618767622).
+Resumo:
+
+- **#360/#361 estavam erradas** — são de outro assunto (`ILlmProvider` e endpoint
+  `generate-sample`), não M2M.
+- **Números corretos:** scheme M2M (JWT Bearer ServiceClient, SmartAuth, bloco
+  `Authentication:ServiceClient`) → commit `bb458fa` / **PR #305** (2026-09-04). Valores
+  reais de Authority/Audience do Entra → commit `39d9cbd` / **PR #316** (2026-09-06, mesmo
+  hotfix do crash de boot do Canary). Ambos confirmados ancestrais de `origin/master`.
+- **Causa da divergência anterior:** checkout local preso na branch
+  `feat/xml-layout-sample-generator-356`, cortada de `develop` antes dessas promoções para
+  `master` — checkout desatualizado, não divergência real entre os times.
+- **Recomendação:** NÃO mexer no checkout sujo existente (trabalho em andamento de outros
+  agentes, issue #356). Fazer um **clone limpo separado** só para subir a API do reteste —
+  nesse clone o `appsettings.json` de `master` já traz Authority/Audience corretos.
+
+**Próximo passo — checklist técnico (PENDENTE, NÃO EXECUTADO nesta sessão):**
+
+1. Clonar a LayoutParserApi em diretório separado, checkout `master`.
+2. Subir a API a partir desse clone; conferir ausência do warning
+   `"Authentication:ServiceClient não configurado"` no log de startup.
+3. Opcional: setar `Database__Password` para `/health/ready` ficar verde.
+4. Repetir `POST /api/TransformationExecution/execute-lowcode` com token M2M — esperado
+   `200` (válido) ou `401` com `WWW-Authenticate` (inválido).
+
+Isso depende de decisão do usuário sobre quem/como executa (precisa de dotnet runtime
+disponível e possivelmente `Database__Password`) — não decidido nem executado por
+`@cy-pm`. O time da API afirma que, feito isso, a issue #13 pode ser fechada; fechamento
+fica a critério do dono do repo, não de `@cy-pm`.

@@ -163,3 +163,62 @@ validaram.
   As duas opções (a)/(b) ficam para o usuário escolher depois que a resposta chegar.
 - Texto pronto para copiar/colar no canal usado com o time da API (Slack, email, issue
   cross-repo).
+
+---
+
+## Adendo 2026-09-10 (noite) — resposta do time com correção de PR/branch (esclarecido)
+
+**Status:** divergência esclarecida, não era problema real. Próximo passo: checklist técnico
+em clone limpo, ainda não executado.
+**Issue relacionada:** [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13)
+(comentado com o texto completo e literal da resposta).
+
+O time da LayoutParserApi reconheceu que as PRs #360/#361 citadas antes estavam erradas
+(essas são de outro assunto — `ILlmProvider` e endpoint `generate-sample`). Números
+corretos:
+
+- Scheme M2M (JWT Bearer ServiceClient, SmartAuth, bloco `Authentication:ServiceClient` no
+  `appsettings.json`) → commit `bb458fa` / **PR #305** (2026-09-04).
+- Valores reais de Authority/Audience do Entra → commit `39d9cbd` / **PR #316** (2026-09-06,
+  mesmo hotfix do crash de boot do Canary).
+- Ambos confirmados como ancestrais de `origin/master` (comandos de verificação fornecidos
+  pelo time: `git show origin/master:appsettings.json | sed -n '21,27p'` e
+  `git merge-base --is-ancestor <commit> origin/master`).
+
+**Causa raiz da divergência anterior:** nosso checkout local está na branch
+`feat/xml-layout-sample-generator-356`, cortada de `develop` **antes** dessas promoções para
+`master` — checkout desatualizado, não uma divergência real de fato entre times.
+
+**Recomendação do time (e decisão registrada aqui):** NÃO mexer no checkout sujo existente
+(tem trabalho em andamento de outros agentes, issue #356). Em vez disso, fazer um **clone
+limpo separado** (`git clone <url> /caminho/limpo/LayoutParserApi-reteste`, checkout
+`master`) só para subir a API do reteste — nesse clone o `appsettings.json` já traz
+Authority/Audience sem precisar de env var.
+
+**Checklist técnico a executar no clone limpo (PENDENTE — não executado nesta sessão):**
+
+1. Subir a API a partir do clone limpo (branch `master`), conferir ausência do warning
+   `"Authentication:ServiceClient não configurado"` no log de startup.
+2. Opcional: setar `Database__Password` para o `/health/ready` ficar verde.
+3. Repetir `POST /api/TransformationExecution/execute-lowcode` com token M2M válido —
+   esperado `200` (válido) ou `401` com header `WWW-Authenticate` (token efetivamente
+   inválido, comportamento correto).
+
+Respostas de referência do time: arquivo exato = `appsettings.json` na raiz (não
+`Development`); branch de validação = `master` (não há branch de release separada;
+`deploy.yml` sai de `master`, mas o servidor de deploy só escuta loopback
+`127.0.0.1:5000` atrás do BFF — para bater direto na API sem BFF, o alvo precisa ser uma
+instância subida a partir de `master`, como no clone limpo).
+
+**Por que ainda não executamos:** subir esse clone limpo requer decisão do usuário sobre
+quem/como vai fazer (dotnet runtime disponível, e possivelmente `Database__Password` para o
+health check). Isso NÃO foi executado nesta sessão — fica registrado como próximo passo
+explícito, sem tomar a decisão pelo usuário. O time da API afirma que, feito isso, a issue
+#13 pode ser fechada — mas o fechamento em si também fica para o dono do repo, não para
+`@cy-pm`.
+
+### Notas de uso deste adendo
+
+- Divergência de PR/branch da rodada anterior está esclarecida — não repetir a pergunta ao
+  time, apenas seguir para o checklist técnico quando o usuário decidir executá-lo.
+- Comentário completo e literal já publicado na issue #13.
