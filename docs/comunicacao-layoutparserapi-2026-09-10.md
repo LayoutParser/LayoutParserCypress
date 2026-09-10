@@ -376,3 +376,77 @@ limpo dedicado já validado nas duas rodadas anteriores
 
 - Não decidimos aqui qual opção (a)/(b) é a correta — cabe ao time da API.
 - Texto pronto para copiar/colar no canal usado com o time da API.
+
+---
+
+**Status:** aguardando o time da LayoutParserApi decidir entre as três opções abaixo para o
+próximo bloqueio (não é regressão de auth) registrado na seção 21 do doc
+`e2e-fiat-sysmiddle-tcl-xsl.md`.
+**Issue relacionada:** [LayoutParserApi#373](https://github.com/LayoutParser/LayoutParserApi/issues/373)
+(já existente, cobre exatamente este sintoma — não abrimos issue nova).
+
+### Prompt formal — LayoutParserLowCodeRunner.exe ausente no host de dev/teste (madrugada 2, pronto para copiar/enviar)
+
+Olá! Antes de mais nada: a saga de autenticação M2M (issue #13) está **fechada e resolvida** —
+issuer e audience corrigidos, confirmado ponta a ponta no reteste. Isto aqui **não é
+regressão nem bloqueio de auth**; é o próximo degrau para completar o reteste E2E do gate
+padrão FIAT.
+
+Com auth funcionando, o `execute-lowcode` agora avança até tentar de fato rodar a
+transformação low-code, e falha com `500`:
+
+```
+An error occurred trying to start process
+'C:\inetpub\wwwroot\layoutparser\api\LayoutParserLowCodeRunner.exe'
+with working directory 'C:\Users\elson.lopes\source\repos\LayoutParserApi-reteste\bin\Debug\net10.0'.
+The system cannot find the file specified.
+```
+
+O log de startup da própria API já avisava sobre isso desde a primeira vez que subimos este
+clone (`LayoutParserApi-reteste`):
+
+```
+LowCode:RunnerPath aponta para um arquivo que NÃO EXISTE:
+C:\inetpub\wwwroot\layoutparser\api\LayoutParserLowCodeRunner.exe.
+Toda transformação low-code vai falhar até o runner ser publicado neste host.
+```
+
+Encontramos a issue [#373](https://github.com/LayoutParser/LayoutParserApi/issues/373), que já
+descreve a causa raiz do lado de produção (nenhum workflow publica o runner). Nosso caso é a
+versão "dev local" do mesmo problema: `LowCode:RunnerPath` está fixo em um caminho de
+produção/IIS (`C:\inetpub\wwwroot\layoutparser\api\...`), que não existe (nem deveria existir)
+num clone de dev.
+
+Três perguntas objetivas, sem preferência nossa por nenhuma delas:
+
+**1. Onde fica o código-fonte do runner e como buildar localmente?**
+É um projeto dentro do próprio repo LayoutParserApi (ex.: `tools/LowCodeRunner/`, mencionado
+na #373) ou um repo companheiro separado? Qual o comando `dotnet publish` específico (ou
+passo documentado em README/ADR que não encontramos) para gerar o `.exe` localmente?
+
+**2. Dá para tornar `LowCode:RunnerPath` configurável para dev local?**
+Hoje parece fixo (via `appsettings.json`) em um caminho de produção/IIS. Seria possível
+promover isso para `appsettings.Development.json` ou variável de ambiente, apontando para um
+caminho relativo ao clone de teste, em vez de exigir replicar a estrutura de pastas do IIS de
+produção numa máquine de dev?
+
+**3. Existe binário pré-buildado do runner que possamos simplesmente copiar?**
+Já que para o reteste E2E não precisamos desenvolver o runner em si, só executá-lo — se
+houver um `.exe` já publicado em algum artefato de CI/release, copiá-lo direto para
+`C:\inetpub\wwwroot\layoutparser\api\LayoutParserLowCodeRunner.exe` (ou outro caminho, se a
+resposta da pergunta 2 permitir) resolveria sem precisar montar o ambiente de build do
+runner.
+
+Não temos preferência entre as três — qualquer uma que destrave o reteste real (`200` de
+verdade no gate padrão FIAT) serve. Assim que tivermos uma direção, aplicamos e rodamos o
+reteste imediatamente no mesmo clone já validado
+(`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`, branch `master`, no commit
+`6fba6a6` da correção de audience).
+
+### Notas de uso deste adendo
+
+- Não decidimos aqui qual das três opções é a correta — cabe ao time da API.
+- Não é regressão nem bloqueio de auth — a saga M2M (#13) segue fechada.
+- Issue #373 (LayoutParserApi) já existe e cobre a causa raiz do lado de produção/CI; não
+  abrimos issue nova neste repo nem no LayoutParserApi.
+- Texto pronto para copiar/colar no canal usado com o time da API.

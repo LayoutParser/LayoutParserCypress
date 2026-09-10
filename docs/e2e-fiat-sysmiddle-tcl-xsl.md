@@ -637,5 +637,26 @@ este reteste confirmam que a causa raiz (auth M2M) está 100% resolvida.
   publicado no clone de teste) — não é mais bloqueio de código nem de auth.
 - Caminho `tcl-xsl`: continua bloqueado pela issue #14 (mapper Sysmiddle ausente pro layout
   FIAT), sem relação com autenticação.
-- A partir de agora, **o próximo bloqueio real do gate padrão FIAT é a issue #14**, não mais
-  autenticação M2M.
+- A partir de agora, o gate padrão FIAT tem dois bloqueios reais restantes, nenhum deles
+  ligado a autenticação M2M: issue #14 (caminho `tcl-xsl`, mapper Sysmiddle ausente) e o
+  bloqueio de runner descrito na seção 21 abaixo (caminho `sysmiddle`).
+
+## 21. Atualização 2026-09-10 (madrugada 2) — runner low-code ausente no host de dev
+
+Com o auth M2M 100% resolvido (seção 20), o reteste no clone
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` avançou até o `500` já citado
+acima: `LowCode:RunnerPath` aponta para
+`C:\inetpub\wwwroot\layoutparser\api\LayoutParserLowCodeRunner.exe`, caminho de
+produção/IIS que não existe no host de dev/teste.
+
+- **Não é regressão nem bloqueio de auth** — é o próximo degrau necessário para completar o
+  reteste ponta-a-ponta (200 de verdade) do caminho `sysmiddle` do gate padrão FIAT.
+- Já existe issue cobrindo a causa raiz do lado de produção/CI:
+  [LayoutParserApi#373](https://github.com/LayoutParser/LayoutParserApi/issues/373) — não
+  abrimos issue nova neste repo nem lá.
+- Prompt formal enviado ao time da API perguntando (sem tomar partido): (1) onde fica o
+  fonte do runner e como buildar localmente, (2) se `LowCode:RunnerPath` pode virar
+  configurável para dev local, (3) se existe binário pré-buildado copiável direto. Ver
+  adendo "madrugada 2" em
+  [`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).
+- Aguardando resposta do time da API antes de prosseguir o reteste do caminho `sysmiddle`.
