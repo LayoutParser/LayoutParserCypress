@@ -222,3 +222,73 @@ explícito, sem tomar a decisão pelo usuário. O time da API afirma que, feito 
 - Divergência de PR/branch da rodada anterior está esclarecida — não repetir a pergunta ao
   time, apenas seguir para o checklist técnico quando o usuário decidir executá-lo.
 - Comentário completo e literal já publicado na issue #13.
+
+---
+
+## Adendo 2026-09-10 (madrugada) — issue #15 fechada + prompt sobre mismatch de issuer (v1 vs v2)
+
+**Status:** #15 fechada (veredito do time confirmado pelo dono do repo). Aguardando o time
+da LayoutParserApi decidir entre as duas correções propostas abaixo para o mismatch de
+issuer registrado em #13.
+**Issue relacionada:** [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13)
+(mismatch já comentado lá, seção 16 do doc `e2e-fiat-sysmiddle-tcl-xsl.md`).
+
+### Issue #15 — fechada
+
+Fechada com o veredito do time da API: `https://layoutparser.duckdns.org` não é ambiente
+correto para chamada M2M direta — passa por um BFF (Fastify/Entra OIDC) antes da API .NET, e
+o BFF valida contra seu próprio audience OIDC, rejeitando o token M2M (audience da API)
+antes de repassar a chamada. Isso explica por que até endpoints sem `[Authorize]`
+(`generate-for-layout`) devolviam o mesmo 401 ali — o bloqueio é na camada do BFF, não na
+API. Comentário de fechamento publicado em #15.
+
+### Prompt formal — mismatch de issuer v1 vs v2 (pronto para copiar/enviar)
+
+Olá! Seguindo o checklist técnico que combinamos, subimos a API a partir de um clone limpo
+de `master` (config M2M carregada corretamente, sem o warning de `ServiceClient` ausente) e
+retestamos `execute-lowcode` direto contra a API (não mais contra o domínio `duckdns`, que
+já esclarecemos que passa pelo BFF e não serve para esse teste).
+
+`execute-lowcode` continua devolvendo `401`, mas desta vez o log do servidor mostrou o
+motivo exato: `IDX10205: Issuer validation failed`. O token M2M emitido pelo Entra tem
+issuer no formato **v1** (`https://sts.windows.net/{tenant}/`), enquanto a validação
+configurada em `Program.cs` espera o formato **v2**
+(`https://login.microsoftonline.com/{tenant}/v2.0`) — ou vice-versa, dependendo de qual lado
+vocês configuraram. Isso costuma vir de `accessTokenAcceptedVersion` não estar setado como
+`2` no App Registration "LayoutParserApi" (recurso, Client ID
+`f76c2598-4759-48a9-8145-8a967ec7ac96`).
+
+Vemos duas correções possíveis e gostaríamos da opinião de vocês sobre qual aplicar:
+
+**(a) Ajustar o Manifest do App Registration no Entra** — setar
+`"accessTokenAcceptedVersion": 2`, fazendo o Entra emitir tokens v2 (issuer
+`.../v2.0`) diretamente.
+- Prós: não toca em código, efeito imediato, sem necessidade de novo deploy.
+- Contras: é uma mudança de configuração fora do código versionado (não fica em PR/diff
+  revisável); precisa de alguém com acesso admin ao App Registration no Entra.
+
+**(b) Ajustar `Program.cs` (bloco `AddJwtBearer`, por volta da linha 224)** para aceitar
+múltiplos issuers válidos, por exemplo:
+```csharp
+options.TokenValidationParameters.ValidIssuers = new[]
+{
+    "https://login.microsoftonline.com/{tenant}/v2.0",
+    "https://sts.windows.net/{tenant}/"
+};
+```
+- Prós: mudança de código versionada, revisável em PR, testável.
+- Contras: precisa de novo PR + deploy para ter efeito.
+
+**Pergunta objetiva:** qual das duas preferem aplicar — (a) ou (b) — ou preferem as **duas**
+juntas (defesa em profundidade: aceitar ambos os formatos de issuer no código, e ainda assim
+manter o Manifest correto)?
+
+Assim que a correção for aplicada, avisem que rodamos o reteste imediatamente — já temos um
+clone limpo dedicado pronto (`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`,
+`master`) só para isso, sem mexer no checkout com trabalho em andamento.
+
+### Notas de uso deste adendo
+
+- Não decidimos aqui qual opção (a)/(b)/ambas é a correta — cabe ao time da API, que tem
+  acesso ao App Registration e ao código.
+- Texto pronto para copiar/colar no canal usado com o time da API.

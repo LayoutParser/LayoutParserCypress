@@ -504,3 +504,19 @@ A instância de reteste foi encerrada (processo Windows PID 31488, `dotnet.exe`/
 original (`172.19.176.1:5100`) — nada ficou rodando nem modificado permanentemente. O clone
 `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` ficou no disco (não
 removido) caso seja útil pra próximo reteste depois da correção.
+
+## 17. Atualização 2026-09-10 (madrugada) — issue #15 fechada; prompt formal enviado sobre mismatch de issuer
+
+Issue [#15](https://github.com/LayoutParser/LayoutParserCypress/issues/15) fechada
+(veredito confirmado pelo dono do repo): o domínio `https://layoutparser.duckdns.org` não é
+ambiente correto para chamada M2M direta — passa por um BFF (Fastify/Entra OIDC) que valida
+contra seu próprio audience OIDC e rejeita o token M2M (audience da API) antes de repassar
+a chamada, o que explica o 401 em todos os endpoints ali, inclusive os sem `[Authorize]`.
+
+Prompt formal com as duas correções possíveis para o mismatch de issuer v1/v2 (seção 16
+acima) foi escrito e adicionado a
+`docs/comunicacao-layoutparserapi-2026-09-10.md` (adendo "madrugada"), perguntando ao time
+LayoutParserApi se preferem (a) ajustar `accessTokenAcceptedVersion` no Manifest do Entra,
+(b) ajustar `ValidIssuers` no `Program.cs`, ou as duas. Issue #13 segue aberta aguardando
+essa resposta antes do próximo reteste no clone limpo
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`.
