@@ -66,9 +66,20 @@ Linha do tempo do bloqueio de autenticação M2M entre LayoutParserCypress e Lay
    `ValidIssuers` múltiplos no `Program.cs`, ou as duas. Adendo em
    `docs/comunicacao-layoutparserapi-2026-09-10.md`, seção 17 do doc principal.
 
+9. **2026-09-10 (decisão do time API)** — responderam ao prompt formal (seção 17 do doc):
+   escolheram opção (a) — `accessTokenAcceptedVersion: 2` no Manifest do App Registration
+   "LayoutParserApi" (`f76c2598-4759-48a9-8145-8a967ec7ac96`) via Portal Azure; não farão a
+   opção (b) (`ValidIssuers` no código) nem PR. Pedem reteste (token novo → conferir `iss`
+   v2 → `execute-lowcode` no clone limpo de `master`) depois do manifest propagar.
+   Comentado em #13. **Bloqueio real:** sem Azure CLI instalado/autenticado nesta máquina, e
+   a mudança exige acesso admin Entra (Application/Cloud Application Administrator) — fora
+   do alcance de qualquer agente/ferramenta desta sessão. Próximo passo prático cabe ao
+   usuário: aplicar no Portal Azure e avisar para reteste em
+   `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`. Doc seção 18.
+
 Comentários: [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13),
 [#15](https://github.com/LayoutParser/LayoutParserCypress/issues/15) (fechada 2026-09-10).
-Doc persistente: `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seções 11-17.
+Doc persistente: `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seções 11-18.
 
 **Why:** essa saga já passou por 3 issues e múltiplos ambientes — fácil perder o fio sem um
 histórico condensado.

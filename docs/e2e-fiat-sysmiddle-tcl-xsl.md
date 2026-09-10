@@ -520,3 +520,36 @@ LayoutParserApi se preferem (a) ajustar `accessTokenAcceptedVersion` no Manifest
 (b) ajustar `ValidIssuers` no `Program.cs`, ou as duas. Issue #13 segue aberta aguardando
 essa resposta antes do próximo reteste no clone limpo
 `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`.
+
+## 18. Atualização 2026-09-10 — decisão do time API sobre o mismatch de issuer; próximo passo depende do usuário
+
+Time LayoutParserApi respondeu ao prompt formal da seção 17 e comentou em
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13):
+
+- Confirmam o diagnóstico (`Program.cs` ~linha 224, `options.Authority = ".../v2.0"` valida
+  `iss` contra v2 e rejeita token v1 `sts.windows.net`).
+- **Decisão:** opção (a) — setar `accessTokenAcceptedVersion: 2` no Manifest do App
+  Registration "LayoutParserApi" (Client ID `f76c2598-4759-48a9-8145-8a967ec7ac96`) via
+  Portal Azure. Não farão a opção (b) (`ValidIssuers` no código) — justificam que corrigir
+  na origem do token é a prática correta numa fronteira de auth que controlam, e que só o
+  Cypress/E2E usa esse caminho hoje (raio de impacto nulo); (a) também não exige PR/deploy.
+- Não haverá PR/mudança de código da parte deles.
+- Pedem, após o manifest propagar: obter token M2M novo, conferir `iss` = `.../v2.0` (jwt.ms),
+  repetir `POST /api/TransformationExecution/execute-lowcode` no clone limpo de `master`
+  (esperado 200; se 401, reportar novo `IDXxxxxx`). Feito isso, fecham #13 do lado deles.
+
+**Bloqueio confirmado nesta sessão:** não há Azure CLI (`az`) instalado/autenticado nesta
+máquina, e a mudança de manifest exige acesso admin ao Azure AD/Entra (role Application
+Administrator ou Cloud Application Administrator no Portal Azure) — fora do alcance de
+qualquer agente Cypress e do ferramental disponível aqui.
+
+**PRÓXIMO PASSO PRÁTICO (depende do usuário/dono do repo, ou de quem tiver esse acesso):**
+1. Entrar no Portal Azure → App registrations → "LayoutParserApi"
+   (`f76c2598-4759-48a9-8145-8a967ec7ac96`) → Manifest.
+2. Setar `"accessTokenAcceptedVersion": 2` e salvar.
+3. Avisar para rodarmos o reteste no clone
+   `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` (pode precisar subir a
+   instância de novo, já foi derrubada numa rodada anterior).
+
+Issue #13 permanece aberta até esse reteste confirmar 200/resposta de negócio (ou um novo
+código `IDXxxxxx` se ainda falhar).
