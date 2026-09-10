@@ -1,7 +1,7 @@
 # E2E FIAT — caminhos Sysmiddle e TCL/XSL vs. Pollux
 
-**Data:** 2026-08-29
-**Status:** implementado, não commitado — execução real bloqueada por API fora do ar; UI (front-end) fora deste cenário, bloqueada por dúvida de contrato.
+**Data:** 2026-08-29 (última atualização: 2026-09-10)
+**Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode` (#13, reteste 2026-09-10 aguardando decisão de URL); caminho `tcl-xsl` bloqueado por XSL ausente pro layout FIAT (#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato (#6).
 
 ## 1. Pedido original
 
@@ -161,3 +161,101 @@ momentânea, são dois bloqueios de escopo/desenvolvimento pendente do lado da
 Issue [#5](https://github.com/LayoutParser/LayoutParserCypress/issues/5) foi comentada com este
 contexto e continua aberta — evoluiu de "bloqueio de infra" para "bloqueio de escopo/dev
 pendente na API", não foi resolvida.
+
+## 11. Atualização 2026-09-07 — revalidação M2M pós PR #295 (e #218/#221 de auth M2M)
+
+A LayoutParserApi anunciou dois PRs prontos: um novo esquema de autenticação M2M (JWT Bearer
+via `client_credentials`, paralelo ao `TrustedIdentityMiddleware` — PRs #218/#221) e o PR #295
+(fix de `LayoutType` numérico). `@qa-cypress` revalidou o gate FIAT de ponta a ponta contra a
+LayoutParserApi local (`172.19.176.1:5100`). Resultado real, não maquiado: os dois `it()`
+(`sysmiddle` e `tcl-xsl`) ainda falharam, mas por motivos **novos e distintos** dos
+registrados nas seções 9/10.
+
+### O que ficou confirmado funcionando
+
+1. **PR #295 resolveu a causa raiz de #10.** `generate-for-layout` para o layout FIAT
+   (`LAY_ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c`) agora retorna `layoutType: "TextPositional"`
+   em vez de "Tipo de layout não suportado: 2".
+2. **Token M2M funciona.** `POST` ao `m2mTokenUrl` com `client_credentials` (client
+   `LayoutParserE2EClient`, App Role `Service.E2E`) retorna `200` com `access_token` válido.
+   Validado também isoladamente via script Node, fora do Cypress — não é problema de como o
+   Cypress monta a requisição.
+
+### Bloqueios novos
+
+1. **`execute-lowcode` continua com 401**, mesmo com o token M2M válido anexado como
+   `Authorization: Bearer <token>`. Corpo vazio, sem header `WWW-Authenticate`. Hipótese não
+   confirmada: o `[Authorize]` desse endpoint específico não reconhece `audience`/`issuer`/role
+   claim desse token, ou o scheme M2M ainda não está plugado nesse endpoint. Isso atualiza a
+   issue [#9](https://github.com/LayoutParser/LayoutParserCypress/issues/9) (que registrava
+   "não existe mecanismo" — agora existe, mas não funciona aqui). Rastreado em issue nova
+   [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13).
+2. **`generate-for-layout` não gera XSL para o layout FIAT.** Gera o `.tcl`, mas
+   `generatedFiles` não traz nenhum `.xsl`/`.xslt`, com o warning "Nenhum mapeador encontrado
+   para o layout LAY_TXT_MQSERIES_ENVNFE_4.00_NFe (Guid:
+   ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c)". Sem XSL, o `execute` não consegue prosseguir.
+   Hipótese: falta cadastro/associação de mapeador XSL para esse layout no catálogo da API.
+   Isso substitui a causa original da issue
+   [#10](https://github.com/LayoutParser/LayoutParserCypress/issues/10) (corrigida pelo #295)
+   por um bloqueio novo, rastreado em issue nova
+   [#14](https://github.com/LayoutParser/LayoutParserCypress/issues/14).
+
+### Consequência
+
+Nenhum dos dois caminhos (`sysmiddle` nem `tcl-xsl`) chegou a submeter XML ao Pollux nesta
+rodada — `cStat=100` ainda não pôde ser confirmado por nenhum dos dois. Issues #9 e #10 foram
+comentadas com este contexto e mantidas abertas (não fechadas) — decisão registrada nos
+próprios comentários: preferi manter o histórico completo (causa original → corrigida/mudou →
+bloqueio novo) em vez de fechar e perder o rastro.
+
+## 12. Atualização 2026-09-09/10 — reteste de #13 pedido pela LayoutParserApi: 401 persiste, causa provável mudou
+
+### O que foi pedido
+
+O time da LayoutParserApi reportou que a causa raiz do 401 da issue
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13) era **timing de
+deploy** — a config M2M (Authority/Audience do Entra) só chegou no "servidor real" deles em
+2026-09-08 — e pediu para reexecutarmos o teste.
+
+### O que foi feito
+
+`@qa-cypress` reexecutou `cypress/e2e/nfe-emissao-normal.cy.js` (it `FIAT [sysmiddle] —
+execute-lowcode → Pollux`) contra a LayoutParserApi configurada em `cypress.env.json`
+(`layoutParserApiUrl = http://172.19.176.1:5100`), com diagnóstico adicional via `curl`
+direto contra o Entra e contra a API (fora do Cypress, pra isolar se o problema era como o
+Cypress monta a requisição).
+
+### Resultado real
+
+1. Obtenção do token M2M continua funcionando: `POST` a
+   `https://login.microsoftonline.com/8de72b5f-31a7-44aa-831e-d60750ab55d7/oauth2/v2.0/token`
+   (client `LayoutParserE2EClient`, scope
+   `api://f76c2598-4759-48a9-8145-8a967ec7ac96/.default`) retorna `200` com `access_token`
+   válido. Config do lado Entra está correta.
+2. `POST /api/TransformationExecution/execute-lowcode` com `Authorization: Bearer <token>`
+   continua retornando **401**, sem header `WWW-Authenticate` — mesmo sintoma original de
+   #13, mesmo depois do fix reportado pela API.
+3. **Achado novo:** `172.19.176.1:5100` é uma instância **local** da LayoutParserApi rodando
+   no host Windows (via gateway WSL), não o "servidor real" de dev que o time da API disse
+   ter corrigido em 08/09. `GET /health/ready` dessa instância retorna `Unhealthy` — SQL
+   Server indisponível ("Erro de rede... SQL Server não foi encontrado") e
+   `MappingDraftStore` em timeout para tcl/xslt. Indício de que essa instância local está com
+   `appsettings.json` desatualizado (sem o scheme M2M novo) e/ou simplesmente não está
+   operacional o bastante pra validar o fix.
+4. O segundo `it()` (`FIAT [tcl-xsl] — generate-for-layout + execute → Pollux`) falhou com
+   `404 "Layout não encontrado"` — isso é a issue #14 já conhecida, sem novidade, não é
+   bloqueio novo.
+
+### Bloqueio — decisão pendente do dono
+
+Não há confirmação de **qual URL de LayoutParserApi** usar pra validar o fix real de #13:
+
+1. reapontar `cypress.env.json` (`layoutParserApiUrl`) pro servidor de dev real do time da
+   API (falta a URL), ou
+2. considerar que a instância local (`172.19.176.1:5100`) deveria estar saudável/atualizada
+   — nesse caso depende de alguém subir/atualizar essa instância local, fora do alcance de
+   qualquer agente Cypress.
+
+Registrado como comentário na issue
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13) — decisão de qual URL
+usar devolvida ao dono, não decidida por nenhum agente.
