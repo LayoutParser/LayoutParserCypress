@@ -95,3 +95,52 @@ Ações tomadas:
   dos bloqueios", linkando #5/#9/#10.
 - Commit local (sem push) só do arquivo de doc que eu mesma escrevi — não toquei nos demais
   arquivos modificados/untracked de outros agentes (harness `.claude/`, specs, config etc.).
+
+## Rodada 2026-09-09/10 — reteste de #13 pedido pela LayoutParserApi: 401 persiste, causa mudou
+
+Time da API disse ter corrigido timing de deploy da config M2M em 2026-09-08 e pediu
+reteste. `@qa-cypress` reexecutou a spec contra `layoutParserApiUrl=172.19.176.1:5100`
+(valor do `cypress.env.json` local): token M2M via Entra continua OK, mas
+`execute-lowcode` continua `401` sem `WWW-Authenticate` — mesmo sintoma original. Achado
+novo: essa URL é instância **local** no host Windows (gateway WSL), `GET /health/ready`
+retorna `Unhealthy` (SQL Server indisponível) — não é o "servidor real" que a API corrigiu.
+Não decidi qual URL usar (servidor de dev real da API vs. consertar instância local) —
+devolvido ao dono.
+
+Ações:
+- Comentário em **issue #13** (não criei issue nova — é o mesmo bloqueio, só reteste com
+  achado novo sobre qual servidor estava sendo usado).
+- `docs/e2e-fiat-sysmiddle-tcl-xsl.md` ganhou seção 12 + status no cabeçalho atualizado.
+- Commit local (sem push), só do doc.
+
+## Rodada 2026-09-10 — dois ambientes testados, sintomas distintos → issue nova #15
+
+Reteste de #13 rodado em dois ambientes na mesma sessão, por pedido explícito do usuário
+(não escolhi um): local (`172.19.176.1:5100`, mesmo sintoma já conhecido — 401 sem body/
+`WWW-Authenticate`) vs. `https://layoutparser.duckdns.org` (testado pela primeira vez com
+Cypress real — 401 **com** body `"Autenticação obrigatória"`, afetando até endpoint sem
+`[Authorize]`, sugerindo gateway/middleware bloqueando tudo nesse ambiente específico).
+
+Ações:
+- Comentei em **#13** com os dois resultados lado a lado (não fechei — escopo dela é o
+  sintoma no ambiente local, que persiste).
+- Abri **#15** para o sintoma novo do ambiente `duckdns` (causa provável distinta —
+  endpoint sem `[Authorize]` também bloqueado sugere camada de auth/gateway diferente do
+  ambiente local). Linkada a #9/#13, adicionada ao Project #4.
+- Escrevi `docs/comunicacao-layoutparserapi-2026-09-10.md` — prompt formal pronto pra
+  copiar/enviar ao time da LayoutParserApi, com 3 perguntas específicas (token rejeitado no
+  duckdns; endpoint sem auth também bloqueado lá; status real do ambiente local
+  `Unhealthy`). Esse é um artefato novo neste repo (não existia antes) — pattern a repetir
+  quando o usuário pede prompt formal pra outro time: salvar em `docs/`, não só devolver no
+  chat, para não se perder entre sessões.
+- Atualizei `docs/e2e-fiat-sysmiddle-tcl-xsl.md` (seção 13 + cabeçalho de status).
+- **Não decidi qual ambiente é canônico** — usuário foi explícito que isso é decisão dele,
+  mantive ambos documentados como testados nesta data.
+- Commit local (sem push, `@cy-devops` roda em paralelo) só dos arquivos que toquei
+  (`docs/*`), não mexi nos demais arquivos modificados/untracked de outros agentes.
+
+### Padrão a repetir
+Quando um reteste pedido por outro time confirma o mesmo sintoma só que descobre uma causa
+ambiental nova (ex.: URL/instância errada), **comentar na issue existente em vez de criar
+issue nova** — é o mesmo bloqueio evoluindo, não um bloqueio novo. Reservar issue nova só
+quando o sintoma/escopo muda de fato (como #9→#13, #10→#14).

@@ -1,7 +1,12 @@
 # E2E FIAT — caminhos Sysmiddle e TCL/XSL vs. Pollux
 
 **Data:** 2026-08-29 (última atualização: 2026-09-10)
-**Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode` (#13, reteste 2026-09-10 aguardando decisão de URL); caminho `tcl-xsl` bloqueado por XSL ausente pro layout FIAT (#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato (#6).
+**Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode`, agora
+confirmado em **dois ambientes com sintomas distintos** (#13 local, #15 `duckdns`, aguardando
+resposta do time da LayoutParserApi — prompt formal em
+`docs/comunicacao-layoutparserapi-2026-09-10.md`); caminho `tcl-xsl` bloqueado por XSL ausente
+pro layout FIAT (#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato
+(#6).
 
 ## 1. Pedido original
 
@@ -259,3 +264,58 @@ Não há confirmação de **qual URL de LayoutParserApi** usar pra validar o fix
 Registrado como comentário na issue
 [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13) — decisão de qual URL
 usar devolvida ao dono, não decidida por nenhum agente.
+
+## 13. Atualização 2026-09-10 — teste em dois ambientes, dois sintomas distintos de 401
+
+### O que foi pedido
+
+Por instrução do usuário, testamos o reteste de #13 em **dois ambientes** da
+LayoutParserApi na mesma rodada, em vez de escolher um: o local já conhecido
+(`172.19.176.1:5100`) e, pela primeira vez com Cypress real,
+`https://layoutparser.duckdns.org` (ambiente que o time da API trata como "servidor
+real"/dev). O mesmo token M2M válido (client `LayoutParserE2EClient`, scope
+`api://f76c2598-4759-48a9-8145-8a967ec7ac96/.default`) foi usado nos dois.
+
+### Ambiente 1 — local (`172.19.176.1:5100`)
+
+Sem novidade em relação à seção 12: `execute-lowcode` → `401` sem body/`WWW-Authenticate`;
+`GET /health/ready` → `Unhealthy` (SQL Server indisponível); segundo `it()` → `404 "Layout
+não encontrado"` (issue #14, já conhecida).
+
+### Ambiente 2 — `https://layoutparser.duckdns.org` (primeira vez testado com Cypress real)
+
+`curl` direto do WSL contra esse host trava no handshake TLS (connection reset) — só foi
+possível testar via Cypress rodando em Electron/Windows. Resultado:
+
+- `POST /api/TransformationExecution/execute-lowcode` com o mesmo Bearer M2M → `401`, mas
+  **com corpo JSON estruturado**:
+  ```json
+  {"statusCode":401,"error":"Unauthorized","message":"Autenticação obrigatória.","correlationId":"6059934c-a08e-4dfc-a54f-09d45dd2229b"}
+  ```
+- `POST /api/AutoTransformation/generate-for-layout` — endpoint que no ambiente local
+  responde `404` **sem exigir autenticação** — **também retornou `401`** com o mesmo formato
+  `"Autenticação obrigatória."` nesse ambiente.
+
+### Leitura
+
+Dois sintomas distintos em ambientes distintos, provavelmente causas raiz diferentes:
+
+- **Ambiente local:** 401 sem body, isolado ao `execute-lowcode` — sintoma original de
+  [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13), possivelmente ligado
+  à instância local estar `Unhealthy`/desatualizada.
+- **Ambiente `duckdns`:** 401 com body estruturado, afetando inclusive endpoint sem
+  `[Authorize]` — sugere uma camada de auth (API Gateway/reverse proxy, ou
+  `TrustedIdentityMiddleware`) na frente de **todos** os endpoints nesse ambiente específico,
+  não reconhecendo o token M2M Entra ali. Rastreado em issue nova
+  [#15](https://github.com/LayoutParser/LayoutParserCypress/issues/15) (mantido separado de
+  #13 por parecer escopo/causa diferente).
+
+### Encaminhamento
+
+Comentário registrado em [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13)
+com os dois resultados lado a lado. Prompt formal para o time da LayoutParserApi, cobrindo as
+três perguntas em aberto (token rejeitado no `duckdns`, endpoint sem auth também bloqueado lá,
+e status/uso correto do ambiente local `Unhealthy`), salvo em
+[`docs/comunicacao-layoutparserapi-2026-09-10.md`](comunicacao-layoutparserapi-2026-09-10.md)
+para o usuário copiar/enviar. Nenhum agente decidiu qual ambiente é o canônico — ambos seguem
+documentados como testados nesta data, por instrução explícita do usuário.
