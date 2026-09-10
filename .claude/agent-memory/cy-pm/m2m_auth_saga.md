@@ -55,6 +55,21 @@ divergência (#360/#361 citados errado, número real era #305/#316).
    retestar `execute-lowcode`/`execute-candidates`. Comentário em
    `LayoutParserApi#391`, detalhe em `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seção 23.
 
+8. **FECHAMENTO DA SAGA DE INFRAESTRUTURA (2026-09-10, madrugada 3) — MARCO:** reteste
+   pós-pull do fix log4net (#391) confirmou a cadeia M2M auth + runner Sysmiddle 100%
+   funcional pela primeira vez: sem 401, sem crash, XML gerado e submetido ao Pollux de
+   ponta a ponta. Isso fecha, de fato, tudo que esta memória rastreava desde o item 1 (auth
+   M2M + runner). Comentário de confirmação em
+   [LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391#issuecomment-5626745970)
+   (issue já estava fechada do lado deles). Detalhe em `docs/e2e-fiat-sysmiddle-tcl-xsl.md`
+   seção 24.
+
+   **Nova frente conceitual, fora do escopo desta memória:** Pollux retornou "Processo
+   realizado com erro" (rejeição fiscal), não erro de infra — cStat/mensagemGeral exatos não
+   capturados nesta rodada. Se essa investigação evoluir, sugerir memória nova dedicada
+   (ex.: `fiat-fiscal-rejection.md`) em vez de continuar acrescentando aqui — este arquivo é
+   sobre a saga de auth M2M + runner, que está encerrada.
+
 **Padrão dos prompts formais:** sempre progresso primeiro (o que já foi corrigido e
 confirmado), depois o novo bloqueio com payload/erro exato, depois duas opções de correção
 com trade-offs (nunca decidir qual é a certa), fechando com pergunta objetiva e oferta do

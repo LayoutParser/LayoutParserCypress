@@ -750,3 +750,45 @@ para `master` via PR **#393**, mergeada em `2026-09-10T22:47:18Z` — a promoç�
 acessível nessa janela, potencialmente também o fix do mapper `LAY_` (issue #14 deste repo).
 Detalhe completo no adendo "noite 3" de
 [`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).
+
+## 24. Atualização 2026-09-10 (madrugada 3) — MARCO: cadeia de infra M2M+runner Sysmiddle 100% funcional; fronteira muda para rejeição fiscal do Pollux
+
+Executado o próximo passo registrado na seção 23. `git pull` no clone
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` trouxe `master` já com o fix
+do log4net promovido (commit `fe9814d`, pós PR #392/#393). Confirmado: `log4net.dll`
+fisicamente commitado em `tools/LowCodeRunner/Functions/` agora reporta AssemblyVersion
+`2.0.17.0`, batendo com o binding redirect do `.exe.config` (antes era `2.0.16.0` — a
+divergência que causava o `FileLoadException` da issue #391). Rebuild, API subida via
+`dotnet run` (Environment: Development) com `LowCode:RunnerPath` apontando para o runner real
+(mesma config já usada em rodadas anteriores).
+
+Rodamos `nfe-emissao-normal.cy.js`, it `FIAT [sysmiddle] — execute-lowcode → Pollux`, com
+`--env mapperLowcodeTimeoutMs=240000` (o runner real do Sysmiddle leva ~137s pra completar,
+mais que o timeout padrão de 120s do Cypress).
+
+**Resultado — primeira vez que o caminho `sysmiddle` do gate padrão FIAT chega ponta-a-ponta
+sem cair em erro de infraestrutura:**
+
+1. Auth M2M: OK (sem 401/IDX10205/IDX10214) — saga da seção 20/`m2m_auth_saga.md` confirmada
+   estável em reteste subsequente.
+2. Runner Sysmiddle: OK — sem crash de log4net, sem 500, transformação completa em ~137s,
+   XML gerado.
+3. Pollux: recebeu e processou o `transformedXml` (não foi timeout nem erro de rede) — mas
+   retornou **"Processo realizado com erro"** (rejeição) em `mensagemItem`, em vez de
+   "Processo realizado com sucesso". Não capturamos `cStat`/`mensagemGeral` exatos desta vez
+   (saída de terminal truncada) — pendência para o próximo reteste, se o dono do repo decidir
+   investigar.
+
+**Mudança de fronteira, registrada explicitamente:** o bloqueio deixou de ser
+auth/infra/runner (rastreado desde a seção 15 em diante, saga completa em
+`m2m_auth_saga.md`) e passou a ser **puramente fiscal** — fora do escopo dessa investigação
+de infraestrutura. Hipóteses não confirmadas (não decidimos qual): dado de teste desatualizado
+no TXT fixture FIAT, ou regra de validação específica do ambiente Pollux dev. Nenhuma decisão
+tomada sobre investigar agora — registrado para o dono do repo priorizar.
+
+O segundo it() (`FIAT [tcl-xsl] — generate-for-layout`) permanece bloqueado por credencial SQL
+(seção 22, issue #14) — inalterado por este reteste.
+
+Comentário enviado em
+[LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391#issuecomment-5626745970)
+confirmando o fix (issue já estava fechada do lado deles).
