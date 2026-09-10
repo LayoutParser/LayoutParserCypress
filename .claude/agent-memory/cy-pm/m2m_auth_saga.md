@@ -77,9 +77,19 @@ Linha do tempo do bloqueio de autenticação M2M entre LayoutParserCypress e Lay
    usuário: aplicar no Portal Azure e avisar para reteste em
    `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`. Doc seção 18.
 
+10. **2026-09-10 (tarde) — issuer resolvido, novo bloqueio: audience mismatch.** Usuário
+    aplicou a correção (a) da seção 18/item 9 no Portal Azure. Reteste no clone limpo
+    `LayoutParserApi-reteste` (`master`) confirma: `IDX10205` (issuer) sumiu, token v2 novo
+    tem `iss`/`ver` corretos, mas `execute-lowcode` segue 401 com erro novo — `IDX10214:
+    Audience validation failed`. Causa provável: `aud` do token v2 vem como GUID puro
+    (`f76c2598-...`), API espera formato URI (`api://f76c2598-...`) em
+    `Authentication:ServiceClient:Audience`. Duas correções possíveis (Audience=GUID vs.
+    `ValidAudiences` múltiplos no `Program.cs`) — pergunta devolvida ao time da API, não
+    decidida aqui. Comentado em #13, doc seção 19.
+
 Comentários: [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13),
 [#15](https://github.com/LayoutParser/LayoutParserCypress/issues/15) (fechada 2026-09-10).
-Doc persistente: `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seções 11-18.
+Doc persistente: `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seções 11-19.
 
 **Why:** essa saga já passou por 3 issues e múltiplos ambientes — fácil perder o fio sem um
 histórico condensado.

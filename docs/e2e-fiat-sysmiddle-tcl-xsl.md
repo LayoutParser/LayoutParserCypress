@@ -553,3 +553,52 @@ qualquer agente Cypress e do ferramental disponível aqui.
 
 Issue #13 permanece aberta até esse reteste confirmar 200/resposta de negócio (ou um novo
 código `IDXxxxxx` se ainda falhar).
+
+## 19. Atualização 2026-09-10 (tarde) — issuer resolvido, novo bloqueio: audience mismatch (GUID vs URI)
+
+O usuário aplicou a correção da seção 18 (`accessTokenAcceptedVersion: 2` no manifest do
+App Registration "LayoutParserApi", confirmado colando o manifesto completo com
+`"api": {"requestedAccessTokenVersion": 2, ...}`).
+
+Reteste executado subindo de novo o clone limpo
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` (branch `master`, mesmo
+clone já confirmado com `bb458fa`/#305 e `39d9cbd`/#316 ancestrais, `appsettings.json` com
+Authority/Audience corretos), rodando a spec real contra `http://127.0.0.1:5000` (Cypress
+roda como processo Windows nativo, alcança o loopback do Windows mesmo executado via WSL).
+
+**Progresso confirmado:** o erro anterior (`IDX10205`, mismatch de issuer v1/v2) sumiu.
+Token M2M novo decodificado (mesmo client_credentials/scope de sempre) vem com:
+
+```
+iss = https://login.microsoftonline.com/8de72b5f-31a7-44aa-831e-d60750ab55d7/v2.0
+ver = 2.0
+aud = f76c2598-4759-48a9-8145-8a967ec7ac96
+roles = ['Service.E2E']
+```
+
+**Novo bloqueio:** `execute-lowcode` continua 401 — agora com erro diferente no log:
+
+```
+[WRN] Falha ao validar token ServiceClient (M2M)
+Microsoft.IdentityModel.Tokens.SecurityTokenInvalidAudienceException: IDX10214: Audience validation failed.
+```
+
+Causa provável: o `aud` do token v2 vem como **GUID puro**
+(`f76c2598-4759-48a9-8145-8a967ec7ac96`), mas a API está configurada
+(`Authentication:ServiceClient:Audience` no `appsettings.json`, e `options.Audience` no
+`Program.cs` ~linha 227) esperando o formato **URI** (`api://f76c2598-...`). Efeito
+colateral conhecido da mudança v1→v2: tokens v2 emitidos via `.default` scope para um
+recurso cujo App ID URI é `api://<próprio-appId>` costumam trazer `aud` como o GUID puro,
+mesmo que o `identifierUris` do App Registration continue `api://f76c2598-...`.
+
+Não é um novo problema nosso — é consequência direta e esperada da correção que o time da
+API escolheu aplicar (opção a da seção 18). Precisa de mais um ajuste do lado deles: ou
+mudar `Authentication:ServiceClient:Audience` (e equivalente em outros ambientes) para o
+GUID puro, ou configurar `TokenValidationParameters.ValidAudiences` no `Program.cs` para
+aceitar ambos os formatos — decisão devolvida ao time da API, não decidida aqui, igual da
+vez passada (seção 17). Comentado em
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13).
+
+Limpeza feita: processo da API de teste encerrado, `cypress.env.json` restaurado ao valor
+original (`172.19.176.1:5100`). Clone `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`
+continua no disco, pronto para o próximo reteste assim que ajustarem o Audience.
