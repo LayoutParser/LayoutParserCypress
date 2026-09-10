@@ -1,12 +1,14 @@
 # E2E FIAT — caminhos Sysmiddle e TCL/XSL vs. Pollux
 
 **Data:** 2026-08-29 (última atualização: 2026-09-10)
-**Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode`, agora
-confirmado em **dois ambientes com sintomas distintos** (#13 local, #15 `duckdns`, aguardando
-resposta do time da LayoutParserApi — prompt formal em
-`docs/comunicacao-layoutparserapi-2026-09-10.md`); caminho `tcl-xsl` bloqueado por XSL ausente
-pro layout FIAT (#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato
-(#6).
+**Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode`.
+Time LayoutParserApi respondeu ao reteste (ver seção 14): duckdns classificado como
+"ambiente incorreto por design" (passa pelo BFF) — #15 aguardando confirmação do dono do
+repo para fechar; instância local `172.19.176.1:5100` seguiria bloqueada por
+checkout/binário desatualizado (scheme M2M não ativo) — checklist deles (`git pull` +
+restart) **ainda não executado**, pendente de esclarecer divergência de PR/branch (ver
+seção 14). Caminho `tcl-xsl` bloqueado por XSL ausente pro layout FIAT (#14); UI (front-end)
+fora deste cenário, bloqueada por dúvida de contrato (#6).
 **Data:** 2026-08-29
 **Status:** implementado, não commitado — execução real bloqueada por API fora do ar; UI (front-end) fora deste cenário, bloqueada por dúvida de contrato.
 
@@ -321,3 +323,56 @@ e status/uso correto do ambiente local `Unhealthy`), salvo em
 [`docs/comunicacao-layoutparserapi-2026-09-10.md`](comunicacao-layoutparserapi-2026-09-10.md)
 para o usuário copiar/enviar. Nenhum agente decidiu qual ambiente é o canônico — ambos seguem
 documentados como testados nesta data, por instrução explícita do usuário.
+
+## 14. Atualização 2026-09-10 (cont.) — resposta do time LayoutParserApi + divergência de PR/branch encontrada
+
+Time LayoutParserApi respondeu ao prompt formal (seção 13) com diagnóstico distinto para
+cada ambiente. Resposta completa comentada em
+[#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13#issuecomment-5618255664)
+e em
+[#15](https://github.com/LayoutParser/LayoutParserCypress/issues/15#issuecomment-5618257861)
+(reproduzida na íntegra lá, não resumida aqui para evitar perda de detalhe técnico). Síntese:
+
+- **`layoutparser.duckdns.org` (#15):** classificado como "não serve pra M2M em nenhuma
+  hipótese" — esse domínio passa por um BFF (Fastify/Entra OIDC) antes da API .NET; o corpo
+  `{"statusCode":401,"error":"Unauthorized","message":"Autenticação obrigatória."}` é
+  serialização do BFF, não da API — o BFF rejeita o token M2M (audience errada pro seu OIDC)
+  antes mesmo de chegar num endpoint com ou sem `[Authorize]`. Veredito deles: não é bug, é o
+  BFF funcionando como projetado. Pedem para fechar #15 com esse veredito — **não fechamos**;
+  comentário pede confirmação do dono do repo antes de fechar.
+- **`172.19.176.1:5100` (#13):** classificado como alvo correto (sem BFF no caminho), mas
+  instância desatualizada — scheme ServiceClient/M2M (`Authentication:ServiceClient:Authority`/
+  `Audience`) não estaria ativo em runtime nessa instância, caindo no handler TrustedHeader que
+  rejeita origem não-loopback com 401 seco. Dizem que os valores corretos já estão no
+  `appsettings.json` do `master` da LayoutParserApi (citam merges das PRs #360/#361 "hoje").
+  Pedem checklist: `git pull` master → subir API → conferir ausência do warning
+  "Authentication:ServiceClient não configurado" → repetir `execute-lowcode` (esperado 200 ou
+  401 com `WWW-Authenticate`, nunca mais 401 seco).
+- Também esclarecem que o "servidor real" corrigido em 2026-09-08 escuta só em loopback
+  (`127.0.0.1:5000`, atrás do BFF co-hospedado), inalcançável por `172.19.176.1` ou IP de rede
+  — bater nele direto sem BFF exigiria um "caminho 1" (runner co-localizado/túnel) que ainda
+  não existe, item futuro do lado deles (`@lp-devops` da API).
+
+### Ressalva — divergência de PR/branch não confirmada
+
+Antes de qualquer um rodar o checklist acima, verificamos o checkout local do repo irmão
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi` para confirmar as PRs #360/#361
+citadas:
+
+- Checkout está na branch **`feat/xml-layout-sample-generator-356`**, não `master`, com
+  working tree sujo (mudanças não commitadas em `Program.cs`,
+  `RepairOrchestratorXslSynthesizerService.cs`, `TrainingDataCaptureService.cs`, memórias de
+  agente).
+- `git log --oneline -5`: `9337385` (issue #356), `f56d3fb` (merge PR #362
+  artifact-provenance-341), `39c4909` (merge PR #360 llm-provider-abstraction-340), `84c8e7c`
+  (fix namespace), `9da2845` (merge PR #359 endpoint-generate-sample-355). **Não aparece PR
+  #361**; a PR #360 visível é sobre "llm-provider-abstraction", sem relação óbvia com
+  M2M/ServiceClient no nome do merge.
+
+**Conclusão:** não confirmamos, a partir deste checkout, que o merge do scheme M2M esteja
+de fato em `master` — pode ser branch/checkout desatualizado localmente, numeração de PR
+diferente da citada, ou estar tudo certo e só não aparecer nesse log recente. **O checklist
+técnico (git pull + restart da instância local) ainda não foi executado** — depende de
+esclarecimento do time da LayoutParserApi sobre essa divergência, e de decisão do usuário
+sobre qual checkout/branch usar. Isso é fora do escopo de `@cy-pm` (não decide nem executa
+esse checklist) — registrado aqui só para rastreabilidade.
