@@ -29,6 +29,7 @@ module.exports = defineConfig({
           process.env.LP_FIAT_LAYOUT_NAME || config.env.fiatLayoutName || config.env.layoutName || null,
         mapperGenerationTimeoutMs: Number(config.env.mapperGenerationTimeoutMs || 120000),
         mapperExecutionTimeoutMs: Number(config.env.mapperExecutionTimeoutMs || 120000),
+        mapperLowcodeTimeoutMs: Number(config.env.mapperLowcodeTimeoutMs || 120000),
       };
 
       // ── Job 2 (modo batch) — descoberta dos candidatos do Job 1 ──────────────────────

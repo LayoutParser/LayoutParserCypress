@@ -20,3 +20,11 @@ referência para desenhar o primeiro cenário e2e completo (UI+API/Ollama+Pollux
   de infra/config da API (401 em `execute-lowcode`, `layoutType` não suportado em
   `generate-for-layout`), não por bug no spec. Spec NÃO commitado (regra: só commitar se ambos
   os it() passarem).
+
+## Cenário UI (execute-candidates) — issue #6 (2026-09-07)
+
+- [run-2026-09-07-ui-execute-candidates](run-2026-09-07-ui-execute-candidates.md) — spec novo
+  `nfe-emissao-normal-ui-candidates.cy.js` (cy.request direto, não cy.visit — UI React não
+  estava no ar), payload confirmado lendo `XmlTransformationDisplay.handleGenerate`. Bloqueado
+  pelo mesmo 401 da issue #13 (agora também em `execute-candidates`, não só `execute-lowcode`).
+  Não commitado.
