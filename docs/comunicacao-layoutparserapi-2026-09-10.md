@@ -450,3 +450,74 @@ reteste imediatamente no mesmo clone já validado
 - Issue #373 (LayoutParserApi) já existe e cobre a causa raiz do lado de produção/CI; não
   abrimos issue nova neste repo nem no LayoutParserApi.
 - Texto pronto para copiar/colar no canal usado com o time da API.
+
+---
+
+## Adendo 2026-09-10 (noite 2) — reteste do fix #14 bloqueado por falta de credencial SQL local
+
+**Status:** aguardando o time da LayoutParserApi escolher entre as duas opções abaixo.
+**Issue relacionada:** [#14](https://github.com/LayoutParser/LayoutParserCypress/issues/14)
+(comentário publicado lá com o mesmo teor).
+
+### Prompt formal — credencial SQL para reteste local, ou reteste feito por vocês (pronto para copiar/enviar)
+
+Olá! Tentamos o reteste que vocês pediram do fix do #14 (normalização do prefixo `LAY_` no
+`MapperDatabaseService`, PR #386→#387/#388, commit `9259b0e` em `master`, deploy em produção
+2026-09-10 ~21:18).
+
+Primeiro, deixamos claro: **isso não contesta nem questiona o resultado dos 772/772 testes
+verdes de vocês** — é só uma lacuna de setup do nosso ambiente de reteste local que não
+tínhamos identificado antes.
+
+No nosso clone dedicado (`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`):
+
+1. `git pull` na `master` — confirmamos `9259b0e` como HEAD (o commit do fix).
+2. Build limpo (0 erros), API subida do zero.
+3. Repetimos `POST /api/AutoTransformation/generate-for-layout` para o layout FIAT
+   (`ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c` / `LAY_TXT_MQSERIES_ENVNFE_4.00_NFe`).
+
+**Não conseguimos validar o fix** — bloqueado por um problema diferente, não relacionado ao
+mapper. No log da API, no momento exato da chamada:
+
+```
+[INF] Gerando transformações para layout: ad4fb6f4-9ff5-44fd-988b-3da5ed56b22c / LAY_TXT_MQSERIES_ENVNFE_4.00_NFe
+[INF] Buscando layouts com termo: LAY_TXT_MQSERIES_ENVNFE_4.00_NFe
+[ERR] Erro ao buscar layouts no banco de dados
+Microsoft.Data.SqlClient.SqlException (0x80131904): Login failed for user 'macgyver'.
+```
+
+Essa busca específica (por termo exato do layout) dispara uma query nova no banco
+`ConnectUS_Macgyver` (`172.31.249.51`), diferente da busca "all" que já tinha ficado em cache
+de rodada anterior. Sem `Database__Password` — credencial que nunca configuramos no nosso
+ambiente, não temos essa senha — a consulta falha antes mesmo de chegar no
+`MapperDatabaseService.GetMapperByInputLayoutGuidAsync` que vocês corrigiram, e a API devolve
+`404 "Layout não encontrado"` ao Cypress mesmo com o layout existindo no banco.
+
+Ou seja: com o ambiente que temos hoje, não dá para confirmar se o mapper agora é encontrado
+ou não — a falha acontece uma etapa antes do código corrigido.
+
+Vemos duas formas de destravar, sem preferência nossa:
+
+**(a) Vocês nos passarem a credencial de leitura** — `Database__Password` (ou a connection
+string completa, read-only) para `172.31.249.51` / banco `ConnectUS_Macgyver`, usuário
+`macgyver` (ou outro usuário read-only dedicado, se preferirem não reaproveitar esse). Só
+para viabilizar reteste local — não pedimos acesso de escrita.
+- Contras que já antecipamos: é banco compartilhado, razoável vocês preferirem não passar
+  senha por canal externo.
+
+**(b) Vocês rodarem o reteste específico do zero**, no ambiente de vocês que já tem acesso ao
+banco: `POST /api/AutoTransformation/generate-for-layout` com esse mesmo layout GUID, e nos
+passar a resposta completa (`generatedFiles` com `.tcl` e `.xsl`/`.xslt`, ou o warning "Nenhum
+mapeador encontrado" se persistir).
+
+**Pergunta objetiva:** qual das duas preferem — (a) ou (b)?
+
+Só para registro: a suíte de testes de vocês roda com mock/in-memory, por isso não precisa
+dessa senha; é só o nosso clone local de reteste (que bate no SQL real) que expõe essa
+lacuna.
+
+### Notas de uso deste adendo
+
+- Não decidimos aqui qual opção (a)/(b) é a correta — cabe ao time da API.
+- Deixar claro no envio que isso não é regressão do fix nem contesta os 772/772 testes verdes.
+- Texto pronto para copiar/colar no canal usado com o time da API.

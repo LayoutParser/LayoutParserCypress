@@ -660,3 +660,41 @@ produção/IIS que não existe no host de dev/teste.
   adendo "madrugada 2" em
   [`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).
 - Aguardando resposta do time da API antes de prosseguir o reteste do caminho `sysmiddle`.
+
+## 22. Atualização 2026-09-10 (noite 2) — reteste do fix #14 bloqueado por credencial SQL local
+
+O time da LayoutParserApi aplicou o fix da issue #14 (normalização do prefixo `LAY_` no
+`MapperDatabaseService`, PR #386→#387/#388, commit `9259b0e` em `master`, deploy em produção
+2026-09-10 ~21:18) e pediu reteste do `generate-for-layout` pro layout FIAT.
+
+Reteste feito no mesmo clone dedicado
+(`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`): `git pull` confirmou
+`9259b0e` como HEAD, build limpo, API subida do zero, chamada real repetida.
+
+**Não validamos o fix** — bloqueado por causa diferente, não relacionada ao mapper: a busca
+por termo exato do layout (`Buscando layouts com termo: LAY_TXT_MQSERIES_ENVNFE_4.00_NFe`)
+dispara uma query nova no banco `ConnectUS_Macgyver` (`172.31.249.51`) que não bate no cache
+já populado por outra busca. Sem `Database__Password` (credencial que nunca configuramos
+nesse ambiente local), o login falha:
+
+```
+Microsoft.Data.SqlClient.SqlException (0x80131904): Login failed for user 'macgyver'.
+```
+
+A falha acontece antes de chegar em
+`MapperDatabaseService.GetMapperByInputLayoutGuidAsync` (o método corrigido) — a API responde
+`404 "Layout não encontrado"` ao Cypress mesmo com o layout existindo no banco, mas por causa
+da falha de conexão, não por o mapper não ser encontrado.
+
+- **Não é regressão do fix nem contesta os 772/772 testes verdes do time da API** — a suíte
+  deles roda com mock/in-memory; é lacuna do nosso setup de reteste local (que bate no SQL
+  real) que não tínhamos identificado antes.
+- Comentado na issue #14 (segue aberta) — reteste tentado, bloqueado por falta de credencial,
+  não por regressão do fix.
+- Prompt formal enviado ao time da API perguntando (sem tomar partido): (a) passar a
+  credencial de leitura (`Database__Password` ou connection string read-only) para
+  `172.31.249.51`/`ConnectUS_Macgyver`, ou (b) eles mesmos rodarem o reteste específico no
+  ambiente deles e nos passar a resposta completa (`generatedFiles` .tcl/.xsl, ou warning
+  "Nenhum mapeador encontrado"). Ver adendo "noite 2" em
+  [`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).
+- Aguardando resposta do time da API antes de prosseguir o reteste do fix #14.
