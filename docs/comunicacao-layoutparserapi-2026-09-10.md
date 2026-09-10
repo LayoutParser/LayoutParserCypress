@@ -292,3 +292,87 @@ clone limpo dedicado pronto (`/mnt/c/Users/elson.lopes/source/repos/LayoutParser
 - Não decidimos aqui qual opção (a)/(b)/ambas é a correta — cabe ao time da API, que tem
   acesso ao App Registration e ao código.
 - Texto pronto para copiar/colar no canal usado com o time da API.
+
+---
+
+## Adendo 2026-09-10 (noite) — issuer resolvido, novo bloqueio: audience mismatch (GUID vs URI)
+
+**Status:** aguardando o time da LayoutParserApi decidir entre as duas correções propostas
+abaixo para o novo mismatch de audience registrado em #13 (seção 19 do doc
+`e2e-fiat-sysmiddle-tcl-xsl.md`).
+**Issue relacionada:** [#13](https://github.com/LayoutParser/LayoutParserCypress/issues/13)
+(comentário [aqui](https://github.com/LayoutParser/LayoutParserCypress/issues/13#issuecomment-5623268147)).
+
+### Prompt formal — audience mismatch v2 (GUID vs URI) (pronto para copiar/enviar)
+
+Olá! Boa notícia primeiro: a correção que vocês aplicaram para o mismatch de issuer
+(`accessTokenAcceptedVersion: 2` no manifest do App Registration "LayoutParserApi")
+funcionou. Retestamos e confirmamos, decodificando o token M2M novo:
+
+```
+iss = https://login.microsoftonline.com/8de72b5f-31a7-44aa-831e-d60750ab55d7/v2.0
+ver = 2.0
+roles = ['Service.E2E']
+```
+
+`iss`/`ver` corretos agora — o erro `IDX10205` (issuer) não aparece mais.
+
+Só que apareceu um novo bloqueio, ainda em `execute-lowcode`, com um erro diferente no log
+do servidor:
+
+```
+Microsoft.IdentityModel.Tokens.SecurityTokenInvalidAudienceException: IDX10214: Audience validation failed.
+```
+
+O motivo: o token v2 traz `aud` como **GUID puro**:
+
+```
+aud = f76c2598-4759-48a9-8145-8a967ec7ac96
+```
+
+Mas a API está configurada esperando o formato **URI** (`Authentication:ServiceClient:Audience`
+no `appsettings.json`, e `options.Audience` no `Program.cs` ~linha 227):
+
+```
+api://f76c2598-4759-48a9-8145-8a967ec7ac96
+```
+
+Pelo que observamos, isso é efeito colateral conhecido e esperado da própria mudança v1→v2
+que vocês aplicaram (não é um sintoma novo e desconectado) — tokens v2 emitidos via
+`.default` scope tendem a trazer `aud` como o GUID puro do App ID, mesmo quando o
+`identifierUris` do App Registration continua `api://<guid>`.
+
+Vemos duas correções possíveis e gostaríamos da opinião de vocês sobre qual aplicar:
+
+**(a) Mudar `Authentication:ServiceClient:Audience`** no `appsettings.json` (e no
+`Program.cs`, se houver algum valor hardcoded em paralelo) de `api://f76c2598-...` para o
+GUID puro `f76c2598-4759-48a9-8145-8a967ec7ac96`.
+- Prós: simples, uma linha de config.
+- Contras: precisa confirmar que o GUID puro é de fato o formato estável esperado para
+  **todo** consumidor v2 futuro dessa API (não só o token M2M do Cypress) — se algum outro
+  fluxo/cliente ainda emitir `aud` no formato URI, essa mudança quebraria esse outro fluxo.
+
+**(b) Configurar `TokenValidationParameters.ValidAudiences`** no `Program.cs` para aceitar
+ambos os formatos, por exemplo:
+```csharp
+options.TokenValidationParameters.ValidAudiences = new[]
+{
+    "f76c2598-4759-48a9-8145-8a967ec7ac96",
+    "api://f76c2598-4759-48a9-8145-8a967ec7ac96"
+};
+```
+- Prós: mais tolerante — não depende de prever exatamente qual formato cada cliente/flow vai
+  popular no `aud`, aceita os dois sem risco de quebrar outro consumidor.
+- Contras: mudança de código versionada, precisa de novo PR + deploy para ter efeito (assim
+  como a opção (b) da rodada anterior sobre issuer).
+
+**Pergunta objetiva:** qual das duas preferem aplicar — (a) ou (b)?
+
+Assim que a correção for aplicada, avisem que rodamos o reteste imediatamente — mesmo clone
+limpo dedicado já validado nas duas rodadas anteriores
+(`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`, branch `master`).
+
+### Notas de uso deste adendo
+
+- Não decidimos aqui qual opção (a)/(b) é a correta — cabe ao time da API.
+- Texto pronto para copiar/colar no canal usado com o time da API.

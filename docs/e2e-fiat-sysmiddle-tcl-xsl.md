@@ -602,3 +602,7 @@ vez passada (seção 17). Comentado em
 Limpeza feita: processo da API de teste encerrado, `cypress.env.json` restaurado ao valor
 original (`172.19.176.1:5100`). Clone `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste`
 continua no disco, pronto para o próximo reteste assim que ajustarem o Audience.
+
+Prompt formal para o time da API sobre este achado (issuer resolvido, audience mismatch
+GUID vs URI, duas opções de correção): ver adendo "2026-09-10 (noite)" em
+`docs/comunicacao-layoutparserapi-2026-09-10.md`.
