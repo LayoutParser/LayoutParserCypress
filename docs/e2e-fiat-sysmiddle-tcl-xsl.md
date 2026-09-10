@@ -723,3 +723,30 @@ AssemblyVersion real `2.0.16.0`. Não decidimos qual dos dois arquivos está err
 [LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391) perguntando
 ao time da API, sem tomar partido. Detalhe completo no adendo "noite 2" de
 [`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).
+
+## 23. Atualização 2026-09-10 (noite 3) — confirmação de ambiente pedida pelo time (504 do LayoutParserReact)
+
+O time da LayoutParserApi recebeu, por outro canal, um `504` em `execute-candidates` — mas
+observado pelo time do **LayoutParserReact** (fluxo de UI deles, fora do nosso Cypress), não
+por nós. Perguntaram contra qual instância da API o *nosso* gate E2E roda, com duas
+hipóteses: (1) nosso clone local `LayoutParserApi-reteste` (quase certo ser o mesmo bug do
+log4net, #391, já corrigido via PR #392); ou (2) servidor deployado (pediram logs
+específicos, nesse caso).
+
+**Confirmado (sem decisão técnica, só resposta factual):** nosso ambiente é sempre o clone
+`/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` — seguindo orientação deles
+mesmos na #373, para não interferir no checkout principal com trabalho em andamento de outros
+agentes. Bate com a hipótese (1); não precisamos investigar logs de servidor deployado.
+Comentado em
+[LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391#issuecomment-5626512826).
+
+**Achado ao verificar:** o comentário deles na #391 já registra que a PR #392 foi promovida
+para `master` via PR **#393**, mergeada em `2026-09-10T22:47:18Z` — a promoção já concluiu
+(não está mais "em andamento").
+
+**Próximo passo (registrado, não executado nesta sessão):** `git pull` no clone
+`LayoutParserApi-reteste` (branch `master`) e reexecutar `execute-lowcode`/
+`execute-candidates` com o runner real, validando o fix do log4net (#391) e, se o SQL estiver
+acessível nessa janela, potencialmente também o fix do mapper `LAY_` (issue #14 deste repo).
+Detalhe completo no adendo "noite 3" de
+[`docs/comunicacao-layoutparserapi-2026-09-10.md`](./comunicacao-layoutparserapi-2026-09-10.md).

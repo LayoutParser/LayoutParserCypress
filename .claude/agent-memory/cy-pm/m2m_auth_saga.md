@@ -45,6 +45,16 @@ preservados em ordem cronológica):
 evidência, sempre confirmar contra o checkout real antes de tratar como fato — já aconteceu
 divergência (#360/#361 citados errado, número real era #305/#316).
 
+7. **Confirmação de ambiente (2026-09-10, noite 3):** time da API perguntou contra qual
+   instância o gate E2E roda, após um 504 relatado pelo LayoutParserReact (fluxo deles, fora
+   do nosso Cypress) em `execute-candidates`. Confirmamos: ambiente é sempre o clone
+   `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` (orientação da própria API
+   na #373) — bate com a hipótese do bug de log4net (#391, fix PR #392). Achado ao verificar:
+   #392 já foi promovida para `master` via PR #393 (2026-09-10T22:47:18Z) — promoção já
+   concluída, não mais "em andamento". Próximo passo (não executado): `git pull` no clone e
+   retestar `execute-lowcode`/`execute-candidates`. Comentário em
+   `LayoutParserApi#391`, detalhe em `docs/e2e-fiat-sysmiddle-tcl-xsl.md` seção 23.
+
 **Padrão dos prompts formais:** sempre progresso primeiro (o que já foi corrigido e
 confirmado), depois o novo bloqueio com payload/erro exato, depois duas opções de correção
 com trade-offs (nunca decidir qual é a certa), fechando com pergunta objetiva e oferta do

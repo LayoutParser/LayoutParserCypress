@@ -583,3 +583,43 @@ Limpeza feita após o teste: processo encerrado, `cypress.env.json` restaurado
   time da API.
 - Issue própria aberta para rastrear, linkada a esta e à LayoutParserApi#373: ver
   `docs/e2e-fiat-sysmiddle-tcl-xsl.md`, seção 22 (extensão), para o número exato.
+
+---
+
+## Adendo (2026-09-10, noite 3) — confirmação de ambiente pedida pelo time (504 relatado pelo LayoutParserReact)
+
+**Status:** confirmado. Próximo passo: `git pull` no clone `LayoutParserApi-reteste` e
+reteste real de `execute-lowcode`/`execute-candidates`.
+**Issue relacionada:** [LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391)
+(comentado — [link](https://github.com/LayoutParser/LayoutParserApi/issues/391#issuecomment-5626512826)).
+
+O time da LayoutParserApi recebeu, via outro canal, um 504 em `execute-candidates` — mas esse
+504 foi observado pelo time do **LayoutParserReact** (fluxo de UI deles, fora do nosso
+Cypress), não por nós. Eles perguntaram contra qual instância da API o *nosso* gate E2E roda,
+oferecendo duas hipóteses: (1) nosso clone local `LayoutParserApi-reteste` — nesse caso, quase
+certo ser o mesmo bug do log4net (#391, já corrigido via PR #392); ou (2) servidor deployado —
+nesse caso pediram logs específicos de lá.
+
+**Resposta registrada (confirmação de ambiente, não decisão técnica):** nosso ambiente é
+sempre o clone `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` — seguindo a
+orientação deles mesmos na #373, para não interferir no checkout principal (trabalho em
+andamento de outros agentes). Isso bate com a hipótese (1) deles: o #391 é o bug relevante
+para nós; não precisamos investigar logs de servidor deployado.
+
+**Achado ao verificar (2026-09-10):** o próprio comentário deles na #391 já registra que a PR
+#392 foi promovida para `master` via PR **#393**, mergeada em `2026-09-10T22:47:18Z` — ou
+seja, a promoção **já concluiu**, não está mais "em andamento" como constava no pedido
+original.
+
+**Próximo passo (registrado, não executado nesta sessão):** `git pull` no clone
+`LayoutParserApi-reteste` (branch `master`) e reexecutar `execute-lowcode`/
+`execute-candidates` com o runner real, validando ao mesmo tempo:
+1. o fix do log4net (#391);
+2. se o SQL estiver acessível nessa janela, potencialmente também o fix do mapper `LAY_`
+   (issue #14 deste repo).
+
+### Notas de uso deste adendo
+
+- Não decidimos nada técnico aqui além de confirmar o ambiente — o diagnóstico já veio do
+  time da API; só confirmamos qual clone usamos e verificamos o status real da promoção.
+- Comentário completo e literal já publicado na LayoutParserApi#391.
