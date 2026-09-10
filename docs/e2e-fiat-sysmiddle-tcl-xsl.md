@@ -7,6 +7,8 @@ resposta do time da LayoutParserApi — prompt formal em
 `docs/comunicacao-layoutparserapi-2026-09-10.md`); caminho `tcl-xsl` bloqueado por XSL ausente
 pro layout FIAT (#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato
 (#6).
+**Data:** 2026-08-29
+**Status:** implementado, não commitado — execução real bloqueada por API fora do ar; UI (front-end) fora deste cenário, bloqueada por dúvida de contrato.
 
 ## 1. Pedido original
 
