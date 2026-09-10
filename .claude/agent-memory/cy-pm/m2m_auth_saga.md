@@ -23,6 +23,15 @@ preservados em ordem cronológica):
    formal enviado 2026-09-10 (noite), aguardando decisão do time entre mudar
    `Authentication:ServiceClient:Audience` para GUID puro vs aceitar ambos os formatos via
    `ValidAudiences`.
+5. **RESOLVIDO (2026-09-10, noite):** time aplicou GUID puro em
+   `Authentication:ServiceClient:Audience` (commit `6fba6a6` / PR #372). Reteste no clone
+   limpo `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` com token M2M novo
+   confirmou: 401/IDX10205/IDX10214 sumiram por completo, autenticação M2M funcionando de
+   ponta a ponta. Request passou a falhar com 500 por motivo ambiental não relacionado a
+   auth (`LayoutParserLowCodeRunner.exe` não publicado no host de teste). **Issue #13
+   fechada** — saga M2M encerrada. Próximo bloqueio real do gate padrão FIAT passa a ser só
+   a #14 (mapper Sysmiddle ausente). Detalhe completo em `docs/e2e-fiat-sysmiddle-tcl-xsl.md`
+   seção 20.
 
 **Ressalva de PR/branch:** ao repassar resposta de outro time citando PR/branch como
 evidência, sempre confirmar contra o checkout real antes de tratar como fato — já aconteceu

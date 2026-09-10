@@ -1,14 +1,13 @@
 # E2E FIAT — caminhos Sysmiddle e TCL/XSL vs. Pollux
 
-**Data:** 2026-08-29 (última atualização: 2026-09-10)
-**Status:** implementado — caminho `sysmiddle` bloqueado por 401 em `execute-lowcode`.
-Checklist técnico do time LayoutParserApi executado de verdade em clone limpo (ver seção
-16): config M2M confirmada carregada corretamente, mas **causa raiz real encontrada** —
-mismatch de formato de issuer v1/v2 do Entra (`IDX10205`). Pergunta enviada ao time da API
-sobre qual das duas correções aplicar. `layoutparser.duckdns.org` (#15) classificado pelo
-time da API como "ambiente incorreto por design" (passa pelo BFF) — aguardando confirmação
-do dono do repo para fechar. Caminho `tcl-xsl` bloqueado por XSL ausente pro layout FIAT
-(#14); UI (front-end) fora deste cenário, bloqueada por dúvida de contrato (#6).
+**Data:** 2026-08-29 (última atualização: 2026-09-10 noite)
+**Status:** saga de autenticação M2M **RESOLVIDA** (issue #13 fechada) — caminho
+`sysmiddle` agora autentica com sucesso, único bloqueio restante nesse caminho é ambiental
+(runner low-code não publicado no host de teste). Caminho `tcl-xsl` continua bloqueado por
+mapper Sysmiddle ausente pro layout FIAT (#14, sem mudança). `layoutparser.duckdns.org`
+(#15) classificado pelo time da API como "ambiente incorreto por design" (passa pelo BFF) —
+aguardando confirmação do dono do repo para fechar. UI (front-end) fora deste cenário,
+bloqueada por dúvida de contrato (#6). Ver seção 20 para o fechamento da saga M2M.
 **Data:** 2026-08-29
 **Status:** implementado, não commitado — execução real bloqueada por API fora do ar; UI (front-end) fora deste cenário, bloqueada por dúvida de contrato.
 
@@ -606,3 +605,37 @@ continua no disco, pronto para o próximo reteste assim que ajustarem o Audience
 Prompt formal para o time da API sobre este achado (issuer resolvido, audience mismatch
 GUID vs URI, duas opções de correção): ver adendo "2026-09-10 (noite)" em
 `docs/comunicacao-layoutparserapi-2026-09-10.md`.
+
+## 20. Fechamento da saga M2M (2026-09-10, noite) — issue #13 fechada
+
+Linha do tempo resumida da saga de autenticação M2M (issues #9 → #13 → #15):
+
+1. Config M2M ausente/divergência de PR/branch — esclarecida (checkout local desatualizado,
+   não era divergência real entre times).
+2. `layoutparser.duckdns.org` rejeitando token M2M mesmo em endpoint sem `[Authorize]` →
+   veredito do time da API: BFF na frente valida contra outro audience OIDC e barra antes
+   de chegar na API real. Issue #15 (ambiente incorreto por design), aguardando
+   confirmação do dono do repo para fechar — separada desta saga.
+3. **Issuer mismatch v1 vs v2** (`IDX10205`) — corrigido pelo time via
+   `accessTokenAcceptedVersion: 2` no manifest do App Registration.
+4. **Audience mismatch** (`IDX10214`, GUID puro vs formato URI) — corrigido pelo time via
+   `Authentication:ServiceClient:Audience` = GUID puro, promovido no commit `6fba6a6` / PR
+   #372.
+5. **Reteste final (2026-09-10, noite):** clone limpo
+   `/mnt/c/Users/elson.lopes/source/repos/LayoutParserApi-reteste` atualizado para `6fba6a6`,
+   token M2M novo, rodada real da spec `nfe-emissao-normal.cy.js` — **401 sumiu
+   completamente** (nem IDX10205 nem IDX10214). Autenticação M2M confirmada funcionando de
+   ponta a ponta. Request passou a falhar com **500** por motivo não relacionado a auth: o
+   executável `LayoutParserLowCodeRunner.exe` não está publicado neste host de teste
+   (lacuna de ambiente já avisada no log de startup desde a primeira rodada).
+
+**Issue #13 fechada** (`gh issue close 13 --reason completed`) — tanto o time da API quanto
+este reteste confirmam que a causa raiz (auth M2M) está 100% resolvida.
+
+**Estado atual do gate padrão FIAT após o fechamento desta saga:**
+- Caminho `sysmiddle`: autenticação OK; bloqueio restante é só ambiental (runner não
+  publicado no clone de teste) — não é mais bloqueio de código nem de auth.
+- Caminho `tcl-xsl`: continua bloqueado pela issue #14 (mapper Sysmiddle ausente pro layout
+  FIAT), sem relação com autenticação.
+- A partir de agora, **o próximo bloqueio real do gate padrão FIAT é a issue #14**, não mais
+  autenticação M2M.
