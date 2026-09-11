@@ -97,5 +97,39 @@ ativar. Ativado via `gh api --method PUT repos/LayoutParser/LayoutParserCypress/
 - `enforce_admins=false` — o dono do repo ainda pode contornar em emergência; mude para `true` se quiser que nem admin escape.
 
 A partir de agora, ao contrário do LayoutParserApi/LayoutParserReact, um `git push` direto em
-`master` deste repo **é rejeitado pelo GitHub de verdade**, não só por convenção. Só PR com 1
-aprovação + CI verde (`ci-dev.yml`) consegue mergear.
+`master` deste repo **é rejeitado pelo GitHub de verdade**, não só por convenção. Só PR com CI
+verde (`ci-dev.yml` + `enforce-develop-to-master.yml`) consegue mergear.
+
+**Atualização 2026-09-10 — `required_approving_review_count` zerado.** O usuário (dono e único
+colaborador do repo) confirmou o motivo: o GitHub nunca conta auto-aprovação do próprio autor
+do PR, então `required_approving_review_count: 1` bloqueava merge de qualquer PR dele mesmo com
+`enforce_admins: false` — a exigência de review (diferente de status checks) não tem bypass
+equivalente pra quem só tem a si mesmo como revisor possível. Ação: `gh api --method PATCH
+repos/LayoutParser/LayoutParserCypress/branches/master/protection/required_pull_request_reviews`
+com `required_approving_review_count=0`, mantendo `dismiss_stale_reviews=true`,
+`require_code_owner_reviews=false`, `require_last_push_approval=false`. Resto da proteção
+inalterado: `required_status_checks.contexts = ["Gate dos mapeadores (dev)", "PR para master
+vem de develop?"]`, `strict=true`, `allow_force_pushes=false`, `allow_deletions=false`,
+`enforce_admins=false`. Ou seja: merge para `master` continua exigindo CI verde e PR vindo de
+`develop`, só não exige mais aprovação de terceiro — requisito impossível de satisfazer com um
+único colaborador.
+
+**Atualização 2026-09-11 — `Gate dos mapeadores (dev)` removido dos checks obrigatórios.**
+Autorizado explicitamente pelo usuário (dono do repo). Motivo: esse check falha sempre, e vai
+continuar falhando, por uma limitação estrutural de rede — o job de `ci-dev.yml` roda em runner
+hospedado do GitHub, que não tem acesso à rede interna da NDD (auth M2M, runner Sysmiddle, SQL
+Server compartilhado ficam em rede privada). Não é falha de qualidade do código; é ausência de
+runner self-hosted com acesso a essa rede. Isso estava bloqueando o merge do PR #18
+(`develop`→`master`) mesmo com `mergeable=true` e conflitos já resolvidos.
+
+Ação: `gh api --method PATCH
+repos/LayoutParser/LayoutParserCypress/branches/master/protection/required_status_checks` com
+`strict=true` e `contexts=["PR para master vem de develop?"]` (removendo `Gate dos mapeadores
+(dev)` da lista). Confirmado via GET que `required_status_checks.contexts` agora contém só
+`"PR para master vem de develop?"`.
+
+Importante: o workflow `ci-dev.yml` **continua rodando normalmente** em todo PR — só deixou de
+ser bloqueante. Ele segue informativo: se algum dia existir runner self-hosted com acesso à
+rede interna da NDD, o check pode voltar a ser adicionado aos `contexts` obrigatórios. Até lá,
+falha nesse check não impede merge, mas deve ser lida pelo time como sinal de que a suíte não
+pôde validar contra o e-forms/Pollux real — não como "está tudo verde".
