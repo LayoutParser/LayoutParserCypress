@@ -8,8 +8,6 @@ mapper Sysmiddle ausente pro layout FIAT (#14, sem mudança). `layoutparser.duck
 (#15) classificado pelo time da API como "ambiente incorreto por design" (passa pelo BFF) —
 aguardando confirmação do dono do repo para fechar. UI (front-end) fora deste cenário,
 bloqueada por dúvida de contrato (#6). Ver seção 20 para o fechamento da saga M2M.
-**Data:** 2026-08-29
-**Status:** implementado, não commitado — execução real bloqueada por API fora do ar; UI (front-end) fora deste cenário, bloqueada por dúvida de contrato.
 
 ## 1. Pedido original
 
@@ -792,3 +790,39 @@ O segundo it() (`FIAT [tcl-xsl] — generate-for-layout`) permanece bloqueado po
 Comentário enviado em
 [LayoutParserApi#391](https://github.com/LayoutParser/LayoutParserApi/issues/391#issuecomment-5626745970)
 confirmando o fix (issue já estava fechada do lado deles).
+
+## 23. Atualização 2026-09-11 — merge divergente `master`↔`develop` resolvido (PR #18)
+
+O PR #18 (`develop` → `master`) ficou com `mergeable_state: dirty`. Causa raiz: `master`
+carregava `40d2904` (merge duplicado do mesmo conteúdo do PR #11/#12), enquanto `develop`
+seguiu ~30 commits à frente por outro caminho de merge (harness M2M, docs, memórias de
+agentes, PR #17) a partir do mesmo commit-base (`932877b`). Divergência estrutural de
+histórico, não conflito de conteúdo linha-a-linha genuíno.
+
+`@cy-devops` (Gage-e2e), autorizado explicitamente pelo dono do repo, mesclou
+`origin/master` numa branch local a partir de `origin/develop` e resolveu os 7 arquivos com
+conflito de merge:
+
+- `.claude/agent-memory/cy-architect/MEMORY.md`,
+  `.claude/agent-memory/cy-pm/MEMORY.md`, `.claude/agent-memory/qa-cypress/MEMORY.md` —
+  conflitos "add/add" de anotações de memória; em todos os casos o lado `develop` já
+  continha o conteúdo do lado `master` de forma equivalente ou superior (ex.: `cy-pm`
+  refatorou memória inline em arquivos-ponteiro que `develop` já linkava) — mantido o
+  conteúdo de `develop`, descartado o texto duplicado/obsoleto de `master`.
+- `cypress.config.js`, `cypress/support/lib/tasks.js` — conflitos de "adição pura"
+  (`mapperLowcodeTimeoutMs`, task `obterTokenM2M`): lado `master` estava vazio/sem a
+  adição, lado `develop` tinha a linha nova. Mantido `develop` integralmente.
+- `cypress/e2e/nfe-emissao-normal.cy.js`, `docs/e2e-fiat-sysmiddle-tcl-xsl.md` — o arquivo
+  inteiro apareceu como conflito porque `master` carregava uma versão anterior e já
+  superada do mesmo arquivo (pré-PR #17). Confirmado por inspeção que ambos os lados eram
+  o "mesmo" arquivo em estágios diferentes de evolução — mantida a versão de `develop`
+  (mais avançada), descartada a de `master`.
+
+Nenhum arquivo de CI/branch-protection teve conflito nesta rodada — não foi necessário
+decidir entre versões de config exclusivas de `master`.
+
+**Onde o merge foi resolvido:** na branch `develop` (local, espelhando `origin/develop`),
+não em `master` diretamente — preserva o fluxo de aprovação via PR #18 (1 aprovação + CI
+verde) em vez de um push direto contornando a branch protection. Após push do merge para
+`origin/develop`, o PR #18 volta a `develop` ligeiramente à frente de `master` apenas pelo
+merge de `40d2904` que ela já não tinha, tornando `mergeable_state` limpo.
