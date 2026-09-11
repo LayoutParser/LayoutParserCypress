@@ -13,34 +13,7 @@ const { caminhoXmlCandidato } = require("./manifest");
 const { appendResult, marcarPosted, OUTCOME_INFRA_ERROR } = require("./results");
 const { enviarDocumento } = require("./pollux");
 const { postCypressResult } = require("./api-client");
-
-const DIR_FIXTURES_WS = path.resolve(__dirname, "..", "..", "fixtures", "webservices");
-
-function lerEnvelope(nome) {
-  return fs.readFileSync(path.join(DIR_FIXTURES_WS, nome), "utf8");
-}
-
-/**
- * @param {{runDir: string|null, runId: string|null, env: object}} contexto
- *   `env` é o `config.env` já resolvido (cypress.env.json + variáveis de ambiente CYPRESS_*).
- */
-function criarTasks(contexto) {
-  const { runDir, runId, env } = contexto;
-
-  // URLs NUNCA são inventadas aqui: se faltarem, o candidato vira `infra_error` com mensagem
-  // explícita (ver pollux.enviarDocumento) em vez de apontar para um host plausível.
-  // Variáveis do processo têm precedência: são o mecanismo de configuração do cron e
-  // precisam conseguir sobrescrever um cypress.env.json eventualmente presente na cópia
-  // implantada (e também permitem testes isolados sem falar com serviços reais).
-  const urlInserir = process.env.LP_POLLUX_URL_INSERIR || env.poluxUrlInserirDocumento || null;
-  const urlConsultar = process.env.LP_POLLUX_URL_CONSULTAR || env.poluxUrlConsultarProtocolo || null;
-  const apiUrl = process.env.LP_API_URL || env.layoutParserApiUrl || null;
-  const strictTls = process.env.LP_POLLUX_STRICT_TLS === "1";
-  const esperaProtocoloMs = Number(process.env.LP_POLLUX_WAIT_MS || 5000);
-  const timeoutMs = Number(process.env.LP_POLLUX_TIMEOUT_MS || 60000);
-
-  return {
-    /**
+const { obterTokenM2M } = require("./m2m-token");
      * Submete um candidato ao Pollux. SEMPRE resolve — nunca lança.
      * Aceita `{ candidate }` (lê o XML do run dir) ou `{ xml }` (conteúdo direto).
      */
