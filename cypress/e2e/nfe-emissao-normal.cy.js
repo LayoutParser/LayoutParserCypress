@@ -159,12 +159,14 @@ describe("Mapeadores padrão — TXT posicional → TCL/XSL gerado → NF-e → 
           // 2. Executa exatamente o TXT posicional indicado usando os artefatos recém-gerados.
           cy.request({
             method: "POST",
-            url: `${apiUrl}/api/transformation-execution/execute`,
+            url: `${apiUrl}/api/TransformationExecution/execute`,
             body: {
               inputContent: txtInput,
               layoutName: caso.layoutName,
+              sourceDocumentType: "NFe",
               targetDocumentType: "NFe",
               validate: false,
+              expectedOutput: "",
               fileName: caso.fileName,
             },
             failOnStatusCode: false,
